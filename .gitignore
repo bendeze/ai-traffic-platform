@@ -43,6 +43,8 @@ pnpm-debug.log*
 uploads/*
 !uploads/.gitkeep
 backend/uploads/*
+backend/experiments/*
+!backend/experiments/.gitkeep
 video_preview/*
 
 # IDE & Editor
