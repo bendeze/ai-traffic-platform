@@ -1,0 +1,6 @@
+Metric,Fixed-Time,Adaptive AI,Manual Timed
+Average Waiting Time (s),0.0,0.0,0.0
+Average Queue Length (vehs),0.02,0.02,0.02
+Maximum Queue (vehs),2,2,2
+Completed Trips,0,0,0
+Throughput (vehs/hr),0.0,0.0,0.0

@@ -483,6 +483,19 @@ async def sumo_set_speed(factor: float):
     sumo_mgr.speed_factor = float(factor)
     return {"status": "ok", "speed_factor": sumo_mgr.speed_factor}
 
+@app.get("/simulation/metrics")
+async def get_simulation_metrics():
+    from simulation.sumo.metrics_collector import metrics_collector
+    return metrics_collector.get_summary()
+
+@app.post("/simulation/benchmark/run")
+async def run_benchmark(duration: float = 30.0, seed: int = 42):
+    from simulation.sumo.benchmark import benchmark_runner
+    if duration < 10.0 or duration > 300.0:
+        raise HTTPException(400, "Benchmark duration must be between 10s and 300s")
+    report = benchmark_runner.run_comparative_study(duration=duration, seed=seed)
+    return {"status": "ok", "report": report}
+
 # ── Arduino Hardware Serial Endpoints ──────────────────────────────────────────
 @app.get("/serial/status")
 async def get_serial_status():

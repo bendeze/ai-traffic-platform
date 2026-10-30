@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-10-30 22:09:59",
+  "seed": 42,
+  "duration_per_run_seconds": 15.0,
+  "comparison": {
+    "fixed": {
+      "duration_seconds": 14.9,
+      "completed_trips": 0,
+      "throughput_vehs_per_hour": 0.0,
+      "average_travel_time": 0.0,
+      "average_waiting_time": 0.0,
+      "average_queue_length": 0.02,
+      "maximum_queue_length": 2,
+      "total_time_loss": 8.0,
+      "approach_avg_queues": {
+        "north_in": 0.0,
+        "south_in": 0.0,
+        "east_in": 0.01,
+        "west_in": 0.01
+      },
+      "control_mode": "fixed",
+      "seed": 42
+    },
+    "adaptive": {
+      "duration_seconds": 14.9,
+      "completed_trips": 0,
+      "throughput_vehs_per_hour": 0.0,
+      "average_travel_time": 0.0,
+      "average_waiting_time": 0.0,
+      "average_queue_length": 0.02,
+      "maximum_queue_length": 2,
+      "total_time_loss": 8.0,
+      "approach_avg_queues": {
+        "north_in": 0.0,
+        "south_in": 0.0,
+        "east_in": 0.01,
+        "west_in": 0.01
+      },
+      "control_mode": "adaptive",
+      "seed": 42
+    },
+    "manual": {
+      "duration_seconds": 14.9,
+      "completed_trips": 0,
+      "throughput_vehs_per_hour": 0.0,
+      "average_travel_time": 0.0,
+      "average_waiting_time": 0.0,
+      "average_queue_length": 0.02,
+      "maximum_queue_length": 2,
+      "total_time_loss": 8.0,
+      "approach_avg_queues": {
+        "north_in": 0.0,
+        "south_in": 0.0,
+        "east_in": 0.01,
+        "west_in": 0.01
+      },
+      "control_mode": "manual",
+      "seed": 42
+    }
+  },
+  "improvements_adaptive_vs_fixed": {
+    "waiting_time_reduction_percent": 0.0,
+    "queue_reduction_percent": 0.0
+  }
+}

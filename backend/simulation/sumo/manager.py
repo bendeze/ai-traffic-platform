@@ -8,6 +8,7 @@ from simulation.sumo.environment import sumo_env
 from simulation.sumo.connection import sumo_conn, SumoConnection
 from simulation.sumo.traffic_adapter import sumo_traffic_adapter, SUMOTrafficAdapter
 from simulation.sumo.perception_adapter import sumo_perception_adapter, SUMOPerceptionAdapter
+from simulation.sumo.metrics_collector import metrics_collector, MetricsCollector
 
 class SUMOManager:
     """
@@ -60,6 +61,7 @@ class SUMOManager:
         if not ok:
             return False
 
+        metrics_collector.reset()
         self.is_running = True
         self.is_paused = False
         self._stop_event.clear()
@@ -116,6 +118,7 @@ class SUMOManager:
             try:
                 # 1. Step simulation and gather perception measurements
                 self.conn.step()
+                metrics_collector.sample_step()
                 approach_states = self.perception_adapter.step_and_measure()
 
                 # 2. Feed measurements into TrafficStateEstimator
@@ -157,7 +160,8 @@ class SUMOManager:
             "speed_factor": self.speed_factor,
             "active_mode": self.active_mode,
             "active_vehicle_count": total_vehs,
-            "approaches": metrics
+            "approaches": metrics,
+            "metrics": metrics_collector.get_summary()
         }
 
 # Global singleton manager
