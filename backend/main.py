@@ -13,6 +13,7 @@ from traffic.state_estimator import TrafficStateEstimator
 from traffic.decision_engine import DecisionEngine
 from controller.safety_manager import SafetyManager
 from controller.serial_manager import SerialManager
+from simulation.sumo.manager import sumo_mgr
 
 # ── Globals ────────────────────────────────────────────────────────────────────
 settings   = load_settings()
@@ -23,11 +24,15 @@ safety     = SafetyManager(settings, on_phase_started=engine.notify_phase_starte
 engine.safety_ref = safety
 serial_mgr = SerialManager(settings)
 
+# Attach master SUMO simulation manager to authoritative traffic controllers
+sumo_mgr.attach_traffic_controllers(engine, safety, estimator)
+
 ws_clients:   list[WebSocket]    = []
 current_frame: Optional[np.ndarray] = None
 processing  = False
 video_source: Optional[str] = None
 active_source: Optional[str] = None
+active_environment: str = "video"  # "video" or "sumo"
 ped_requests = {a.name: False for a in settings.approaches}
 active_ambulance: Optional[str] = None
 
@@ -112,26 +117,33 @@ async def processing_loop():
         if is_snapshot_mode:
             if is_snapshot_frame:
                 cached_snapshot_detections = detections
-                estimator.update(detections, manual_ambulance=active_ambulance)
+                if active_environment != "sumo":
+                    estimator.update(detections, manual_ambulance=active_ambulance)
                 proposal = engine.decide(estimator.get_state(), ped_requests)
                 safety.apply(proposal)
+                if sumo_mgr.is_running:
+                    sumo_mgr.traffic_adapter.apply_signals(safety.get_approach_states())
                 if serial_mgr.is_connected():
                     serial_mgr.send_signals(safety.get_approach_states(), safety.current_phase, int(safety.remaining_green))
         else:
-            estimator.update(detections, manual_ambulance=active_ambulance)
+            if active_environment != "sumo":
+                estimator.update(detections, manual_ambulance=active_ambulance)
 
         await asyncio.sleep(0.033)
 
 async def decision_loop():
     while True:
         await asyncio.sleep(0.5)
-        if not processing:
+        if not processing and not sumo_mgr.is_running:
             continue
-        # In tracking mode or manual mode, decision loop sets / cycles lights
+        # In tracking mode, manual mode, or SUMO simulation mode, decision loop sets / cycles lights
         proposal = engine.decide(estimator.get_state(), ped_requests)
         safety.apply(proposal)
+        approach_states = safety.get_approach_states()
+        if sumo_mgr.is_running:
+            sumo_mgr.traffic_adapter.apply_signals(approach_states)
         if serial_mgr.is_connected():
-            serial_mgr.send_signals(safety.get_approach_states(), safety.current_phase, int(safety.remaining_green))
+            serial_mgr.send_signals(approach_states, safety.current_phase, int(safety.remaining_green))
 
 async def broadcast_loop():
     while True:
@@ -189,6 +201,8 @@ def _build_payload():
         },
         "pedestrian": ped_requests,
         "active_ambulance": active_ambulance,
+        "active_environment": active_environment,
+        "simulation": sumo_mgr.get_telemetry(),
         "pipeline":   vision.health(),
         "hardware":   serial_mgr.status(),
         "timestamp":  time.time(),
@@ -409,6 +423,65 @@ async def update_approaches(body: dict):
 async def get_sumo_diagnostics():
     from simulation.sumo.environment import sumo_env
     return sumo_env.get_diagnostics()
+
+@app.get("/simulation/sumo/status")
+async def get_sumo_status():
+    return {
+        "active_environment": active_environment,
+        "telemetry": sumo_mgr.get_telemetry()
+    }
+
+@app.post("/simulation/environment/{env}")
+async def set_active_environment(env: str):
+    global active_environment, processing
+    if env not in ("video", "sumo"):
+        raise HTTPException(400, "Environment must be 'video' or 'sumo'")
+    active_environment = env
+    if env == "sumo":
+        # Ensure video loop is paused and start simulation if not running
+        if not sumo_mgr.is_running:
+            sumo_mgr.start_simulation(gui=False)
+    else:
+        # Stop SUMO simulation when switching back to video
+        if sumo_mgr.is_running:
+            sumo_mgr.stop_simulation()
+    return {"status": "ok", "active_environment": active_environment}
+
+@app.post("/simulation/sumo/start")
+async def sumo_start(gui: bool = False, speed: float = 1.0):
+    global active_environment
+    active_environment = "sumo"
+    ok = sumo_mgr.start_simulation(gui=gui, speed_factor=speed)
+    if not ok:
+        raise HTTPException(500, "Failed to start SUMO simulation. Check diagnostics.")
+    return {"status": "ok", "telemetry": sumo_mgr.get_telemetry()}
+
+@app.post("/simulation/sumo/stop")
+async def sumo_stop():
+    sumo_mgr.stop_simulation()
+    return {"status": "ok", "telemetry": sumo_mgr.get_telemetry()}
+
+@app.post("/simulation/sumo/pause")
+async def sumo_pause():
+    sumo_mgr.pause_simulation()
+    return {"status": "ok", "telemetry": sumo_mgr.get_telemetry()}
+
+@app.post("/simulation/sumo/resume")
+async def sumo_resume():
+    sumo_mgr.resume_simulation()
+    return {"status": "ok", "telemetry": sumo_mgr.get_telemetry()}
+
+@app.post("/simulation/sumo/reset")
+async def sumo_reset():
+    ok = sumo_mgr.reset_simulation()
+    return {"status": "ok" if ok else "error", "telemetry": sumo_mgr.get_telemetry()}
+
+@app.post("/simulation/sumo/speed/{factor}")
+async def sumo_set_speed(factor: float):
+    if factor < 0.1 or factor > 10.0:
+        raise HTTPException(400, "Speed factor must be between 0.1 and 10.0")
+    sumo_mgr.speed_factor = float(factor)
+    return {"status": "ok", "speed_factor": sumo_mgr.speed_factor}
 
 # ── Arduino Hardware Serial Endpoints ──────────────────────────────────────────
 @app.get("/serial/status")

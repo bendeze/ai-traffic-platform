@@ -16,6 +16,8 @@ export default function App() {
   const [wsConnected, setWsConnected] = useState(false);
   const [log, setLog] = useState('SYSTEM INITIALIZED');
   const [showCalibrate, setShowCalibrate] = useState(false);
+  const [sumoGui, setSumoGui] = useState(false);
+  const [sumoSpeed, setSumoSpeed] = useState(1.0);
 
   useEffect(() => {
     let ws = null;
@@ -259,6 +261,86 @@ export default function App() {
     }
   };
 
+  const activeEnvironment = data?.active_environment || 'video';
+  const isSumoMode = activeEnvironment === 'sumo';
+  const sumoData = data?.simulation || {};
+  const isSumoRunning = Boolean(sumoData?.is_running);
+  const isSumoPaused = Boolean(sumoData?.is_paused);
+  const sumoTime = sumoData?.sim_time ?? 0.0;
+  const sumoVehicleCount = sumoData?.active_vehicle_count ?? 0;
+  const sumoApproaches = sumoData?.approaches ?? {};
+
+  const switchEnvironment = async (env) => {
+    try {
+      await fetch(`${API_BASE}/simulation/environment/${env}`, { method: 'POST' });
+      setLog(`ENVIRONMENT SWITCHED: ${env.toUpperCase()}`);
+    } catch {
+      setLog('ENVIRONMENT SWITCH FAILED');
+    }
+  };
+
+  const startSumo = async (gui = sumoGui) => {
+    try {
+      setLog(`STARTING SUMO SIMULATION (${gui ? 'GUI' : 'HEADLESS'})...`);
+      const res = await fetch(`${API_BASE}/simulation/sumo/start?gui=${gui}&speed=${sumoSpeed}`, { method: 'POST' });
+      const d = await res.json();
+      if (res.ok) {
+        setLog(`SUMO SIMULATION ACTIVE (${gui ? 'GUI WINDOW' : 'HEADLESS ENGINE'})`);
+      } else {
+        setLog(`SUMO START FAILED: ${d.detail || 'ERROR'}`);
+      }
+    } catch {
+      setLog('SUMO START REQUEST FAILED');
+    }
+  };
+
+  const stopSumo = async () => {
+    try {
+      await fetch(`${API_BASE}/simulation/sumo/stop`, { method: 'POST' });
+      setLog('SUMO SIMULATION STOPPED');
+    } catch {
+      setLog('SUMO STOP FAILED');
+    }
+  };
+
+  const pauseSumo = async () => {
+    try {
+      await fetch(`${API_BASE}/simulation/sumo/pause`, { method: 'POST' });
+      setLog('SUMO SIMULATION PAUSED');
+    } catch {
+      setLog('SUMO PAUSE FAILED');
+    }
+  };
+
+  const resumeSumo = async () => {
+    try {
+      await fetch(`${API_BASE}/simulation/sumo/resume`, { method: 'POST' });
+      setLog('SUMO SIMULATION RESUMED');
+    } catch {
+      setLog('SUMO RESUME FAILED');
+    }
+  };
+
+  const resetSumo = async () => {
+    try {
+      setLog('RESETTING SUMO SIMULATION...');
+      await fetch(`${API_BASE}/simulation/sumo/reset`, { method: 'POST' });
+      setLog('SUMO SIMULATION RESET (T=0.0s)');
+    } catch {
+      setLog('SUMO RESET FAILED');
+    }
+  };
+
+  const updateSumoSpeed = async (factor) => {
+    setSumoSpeed(factor);
+    try {
+      await fetch(`${API_BASE}/simulation/sumo/speed/${factor}`, { method: 'POST' });
+      setLog(`SUMO SIMULATION SPEED SET TO ${factor}x`);
+    } catch {
+      setLog('SPEED UPDATE FAILED');
+    }
+  };
+
   const currentPhase = data?.signal?.phase || 'A';
   const signalState = data?.signal?.state || 'green';
   const remaining = Math.round(data?.signal?.remaining ?? 0);
@@ -307,16 +389,23 @@ export default function App() {
           </span>
         </div>
 
-        {/* Video Source Controls */}
+        {/* Operating Environment & Source Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button onClick={() => setSource('test_intersection.mp4')} style={btnMinimal}>
-            SIMULATION
+          <button
+            onClick={() => { switchEnvironment('video'); setSource('test_intersection.mp4'); }}
+            style={{
+              ...btnMinimal,
+              backgroundColor: (!isSumoMode) ? '#222222' : 'transparent',
+              borderColor: (!isSumoMode) ? '#ffffff' : '#333333'
+            }}
+          >
+            VIDEO
           </button>
-          <button onClick={() => setSource('webcam')} style={btnMinimal}>
+          <button
+            onClick={() => { switchEnvironment('video'); setSource('webcam'); }}
+            style={btnMinimal}
+          >
             CAMERA
-          </button>
-          <button onClick={stopFeed} style={btnMinimal}>
-            HALT
           </button>
 
           <label style={{ ...btnMinimal, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
@@ -324,14 +413,31 @@ export default function App() {
             <input
               type="file"
               accept="video/*"
-              onChange={handleFileUpload}
+              onChange={(e) => { switchEnvironment('video'); handleFileUpload(e); }}
               style={{ display: 'none' }}
             />
           </label>
 
-          <button onClick={() => setShowCalibrate(true)} style={{ ...btnMinimal, borderColor: '#555' }}>
-            CALIBRATE REGIONS
+          {/* SUMO Simulation Environment Button */}
+          <button
+            onClick={() => { switchEnvironment('sumo'); if (!isSumoRunning) startSumo(); }}
+            style={{
+              ...btnMinimal,
+              backgroundColor: isSumoMode ? '#ffffff' : 'transparent',
+              color: isSumoMode ? '#000000' : '#ffffff',
+              borderColor: '#ffffff',
+              fontWeight: 800,
+              letterSpacing: '0.05em'
+            }}
+          >
+            SUMO SIMULATION
           </button>
+
+          {!isSumoMode && (
+            <button onClick={() => setShowCalibrate(true)} style={{ ...btnMinimal, borderColor: '#555' }}>
+              CALIBRATE REGIONS
+            </button>
+          )}
 
           <div style={{
             display: 'flex',
@@ -495,76 +601,196 @@ export default function App() {
         </div>
       )}
 
-      {/* Minimalist Vision Analysis Mode Segmented Control */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#050505',
-        border: '1px solid #1a1a1a',
-        padding: '6px 14px',
-        marginBottom: '20px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <span className="mono" style={{ fontSize: '0.68rem', color: '#555555', letterSpacing: '0.1em' }}>
-            VISION ENGINE:
-          </span>
-          <div style={{
-            display: 'inline-flex',
-            backgroundColor: '#000000',
-            border: '1px solid #222222',
-            padding: '2px'
-          }}>
-            <button
-              onClick={() => switchVisionMode('tracking')}
-              style={{
-                backgroundColor: !isSnapshotMode ? '#ffffff' : 'transparent',
-                color: !isSnapshotMode ? '#000000' : '#737373',
-                border: 'none',
-                padding: '6px 16px',
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              CONTINUOUS TRACKING
-            </button>
-            <button
-              onClick={() => switchVisionMode('snapshot')}
-              style={{
-                backgroundColor: isSnapshotMode ? '#ffffff' : 'transparent',
-                color: isSnapshotMode ? '#000000' : '#737373',
-                border: 'none',
-                padding: '6px 16px',
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              SNAPSHOT {snapshotInterval}s
-            </button>
+      {/* Operating Mode Segmented Control (Vision Engine vs SUMO Simulation) */}
+      {!isSumoMode ? (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#050505',
+          border: '1px solid #1a1a1a',
+          padding: '6px 14px',
+          marginBottom: '20px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <span className="mono" style={{ fontSize: '0.68rem', color: '#555555', letterSpacing: '0.1em' }}>
+              VISION ENGINE:
+            </span>
+            <div style={{
+              display: 'inline-flex',
+              backgroundColor: '#000000',
+              border: '1px solid #222222',
+              padding: '2px'
+            }}>
+              <button
+                onClick={() => switchVisionMode('tracking')}
+                style={{
+                  backgroundColor: !isSnapshotMode ? '#ffffff' : 'transparent',
+                  color: !isSnapshotMode ? '#000000' : '#737373',
+                  border: 'none',
+                  padding: '6px 16px',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                CONTINUOUS TRACKING
+              </button>
+              <button
+                onClick={() => switchVisionMode('snapshot')}
+                style={{
+                  backgroundColor: isSnapshotMode ? '#ffffff' : 'transparent',
+                  color: isSnapshotMode ? '#000000' : '#737373',
+                  border: 'none',
+                  padding: '6px 16px',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                SNAPSHOT {snapshotInterval}s
+              </button>
+            </div>
+          </div>
+
+          {/* Minimalist Inline Telemetry */}
+          <div className="mono" style={{ fontSize: '0.7rem', color: '#737373', display: 'flex', gap: '14px' }}>
+            {isSnapshotMode ? (
+              <>
+                <span>NEXT: <strong style={{ color: '#ffffff' }}>{nextSnapIn}s</strong></span>
+                <span style={{ color: '#262626' }}>/</span>
+                <span>CAPTURED: <strong style={{ color: '#ffffff' }}>#{snapCount}</strong></span>
+              </>
+            ) : (
+              <span>RATE: <strong style={{ color: '#ffffff' }}>{fps} FPS</strong></span>
+            )}
           </div>
         </div>
+      ) : (
+        /* SUMO SIMULATION BAR */
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#050505',
+          border: '1px solid #1a1a1a',
+          padding: '8px 14px',
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span className="mono" style={{ fontSize: '0.68rem', color: '#555555', letterSpacing: '0.1em' }}>
+              SUMO ENGINE:
+            </span>
+            
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '3px 8px',
+              border: '1px solid #333333',
+              borderRadius: '2px'
+            }}>
+              <span style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: isSumoRunning ? (isSumoPaused ? '#f59e0b' : '#22c55e') : '#555555'
+              }} />
+              <span className="mono" style={{
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                color: isSumoRunning ? (isSumoPaused ? '#fcd34d' : '#86efac') : '#737373'
+              }}>
+                {isSumoRunning ? (isSumoPaused ? 'PAUSED' : 'RUNNING') : 'STOPPED'}
+              </span>
+            </div>
 
-        {/* Minimalist Inline Telemetry */}
-        <div className="mono" style={{ fontSize: '0.7rem', color: '#737373', display: 'flex', gap: '14px' }}>
-          {isSnapshotMode ? (
-            <>
-              <span>NEXT: <strong style={{ color: '#ffffff' }}>{nextSnapIn}s</strong></span>
-              <span style={{ color: '#262626' }}>/</span>
-              <span>CAPTURED: <strong style={{ color: '#ffffff' }}>#{snapCount}</strong></span>
-            </>
-          ) : (
-            <span>RATE: <strong style={{ color: '#ffffff' }}>{fps} FPS</strong></span>
-          )}
+            {/* Simulation Lifecycle Action Buttons */}
+            {!isSumoRunning ? (
+              <button
+                onClick={() => startSumo(sumoGui)}
+                style={{ ...btnMinimal, borderColor: '#22c55e', color: '#86efac', fontWeight: 700 }}
+              >
+                ▶ START
+              </button>
+            ) : (
+              <>
+                {isSumoPaused ? (
+                  <button onClick={resumeSumo} style={{ ...btnMinimal, borderColor: '#22c55e', color: '#86efac' }}>
+                    ▶ RESUME
+                  </button>
+                ) : (
+                  <button onClick={pauseSumo} style={{ ...btnMinimal, borderColor: '#f59e0b', color: '#fcd34d' }}>
+                    ⏸ PAUSE
+                  </button>
+                )}
+                <button onClick={resetSumo} style={btnMinimal}>
+                  ↺ RESET
+                </button>
+                <button onClick={stopSumo} style={{ ...btnMinimal, borderColor: '#ef4444', color: '#fca5a5' }}>
+                  ⏹ STOP
+                </button>
+              </>
+            )}
+
+            {/* GUI Toggle */}
+            <button
+              onClick={() => {
+                const nextGui = !sumoGui;
+                setSumoGui(nextGui);
+                setLog(`SUMO GUI PREFERENCE: ${nextGui ? 'ENABLED' : 'HEADLESS'}`);
+                if (isSumoRunning) {
+                  stopSumo().then(() => startSumo(nextGui));
+                }
+              }}
+              style={{
+                ...btnMinimal,
+                backgroundColor: sumoGui ? '#ffffff' : 'transparent',
+                color: sumoGui ? '#000000' : '#737373',
+                fontSize: '0.65rem'
+              }}
+              title="Launch external SUMO-GUI window on desktop"
+            >
+              GUI: {sumoGui ? 'ON' : 'OFF'}
+            </button>
+
+            {/* Speed Factor */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '6px' }}>
+              <span className="mono" style={{ fontSize: '0.65rem', color: '#555' }}>SPEED:</span>
+              {[0.5, 1.0, 2.0, 3.0].map((spd) => (
+                <button
+                  key={spd}
+                  onClick={() => updateSumoSpeed(spd)}
+                  style={{
+                    ...btnMinimal,
+                    fontSize: '0.62rem',
+                    padding: '2px 6px',
+                    borderColor: sumoSpeed === spd ? '#ffffff' : '#333',
+                    color: sumoSpeed === spd ? '#ffffff' : '#737373'
+                  }}
+                >
+                  {spd}x
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Telemetry Info */}
+          <div className="mono" style={{ fontSize: '0.72rem', color: '#737373', display: 'flex', gap: '14px' }}>
+            <span>SIM TIME: <strong style={{ color: '#ffffff' }}>{sumoTime.toFixed(1)}s</strong></span>
+            <span style={{ color: '#262626' }}>/</span>
+            <span>SIM VEHICLES: <strong style={{ color: '#86efac' }}>{sumoVehicleCount}</strong></span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Grid */}
       <main style={{
@@ -581,7 +807,7 @@ export default function App() {
           backgroundColor: '#050505',
           border: '1px solid #1a1a1a'
         }}>
-          {/* Feed Header */}
+          {/* Feed / Simulation Header */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -591,15 +817,19 @@ export default function App() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="mono" style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>
-                FEED 01
+                {isSumoMode ? 'SUMO ENGINE' : 'FEED 01'}
               </span>
               <span style={{ fontSize: '0.75rem', color: '#404040' }}>/</span>
               <span className="mono" style={{ fontSize: '0.7rem', color: '#737373' }}>
-                {isSnapshotMode ? 'PHOTO SNAPSHOT INSPECTION' : 'CONTINUOUS VEHICLE TRACKING'}
+                {isSumoMode
+                  ? 'TRACI CLOSED-LOOP 4-WAY INTERSECTION'
+                  : (isSnapshotMode ? 'PHOTO SNAPSHOT INSPECTION' : 'CONTINUOUS VEHICLE TRACKING')}
               </span>
             </div>
             <div className="mono" style={{ fontSize: '0.75rem', color: '#737373' }}>
-              {isSnapshotMode ? `INTERVAL: 2.0s` : `${fps} FPS`}
+              {isSumoMode
+                ? `TIME: ${sumoTime.toFixed(1)}s`
+                : (isSnapshotMode ? `INTERVAL: 2.0s` : `${fps} FPS`)}
             </div>
           </div>
 
@@ -614,18 +844,139 @@ export default function App() {
             overflow: 'hidden',
             minHeight: '480px'
           }}>
-            <img
-              src={`${API_BASE}/video/stream`}
-              alt="Telemetry Stream"
-              style={{
+            {!isSumoMode ? (
+              <img
+                src={`${API_BASE}/video/stream`}
+                alt="Telemetry Stream"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block'
+                }}
+                onError={(e) => { e.target.style.opacity = '0'; }}
+                onLoad={(e) => { e.target.style.opacity = '1'; }}
+              />
+            ) : (
+              /* SUMO Microscopic Live Telemetry Board */
+              <div style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain',
-                display: 'block'
-              }}
-              onError={(e) => { e.target.style.opacity = '0'; }}
-              onLoad={(e) => { e.target.style.opacity = '1'; }}
-            />
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid #1a1a1a',
+                  paddingBottom: '10px'
+                }}>
+                  <span className="mono" style={{ fontSize: '0.75rem', color: '#888' }}>
+                    APPROACH TELEMETRY — 4-WAY MICROSCOPIC FLOW
+                  </span>
+                  <span className="mono" style={{ fontSize: '0.7rem', color: '#22c55e' }}>
+                    ● TRACI LIVE SYNCHRONIZED
+                  </span>
+                </div>
+
+                {/* 2x2 Grid of Approaches */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '16px',
+                  margin: '16px 0'
+                }}>
+                  {['north', 'south', 'east', 'west'].map((app) => {
+                    const appData = sumoApproaches[app] || data?.approaches?.[app] || {};
+                    const sigColor = appData.signal || 'red';
+                    const sigColorHex = sigColor === 'green' ? '#22c55e' : (sigColor === 'yellow' ? '#f59e0b' : '#ef4444');
+                    const bd = appData.breakdown || {};
+
+                    return (
+                      <div
+                        key={app}
+                        style={{
+                          backgroundColor: '#050505',
+                          border: '1px solid #1a1a1a',
+                          padding: '14px 16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span className="mono" style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.05em' }}>
+                            {app.toUpperCase()} APPROACH
+                          </span>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            color: sigColorHex,
+                            border: `1px solid ${sigColorHex}`,
+                            padding: '2px 6px',
+                            borderRadius: '2px'
+                          }}>
+                            {sigColor.toUpperCase()}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                          <div>
+                            <div className="mono" style={{ fontSize: '0.62rem', color: '#555' }}>VEHICLES</div>
+                            <div className="mono" style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+                              {appData.vehicle_count ?? 0}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="mono" style={{ fontSize: '0.62rem', color: '#555' }}>QUEUE</div>
+                            <div className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: (appData.queue_length ?? 0) > 3 ? '#f59e0b' : '#fff' }}>
+                              {appData.queue_length ?? appData.queue ?? 0}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="mono" style={{ fontSize: '0.62rem', color: '#555' }}>MEAN SPEED</div>
+                            <div className="mono" style={{ fontSize: '0.85rem', color: '#aaa' }}>
+                              {appData.mean_speed ? `${appData.mean_speed} m/s` : '—'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="mono" style={{ fontSize: '0.62rem', color: '#555' }}>WAIT TIME</div>
+                            <div className="mono" style={{ fontSize: '0.85rem', color: '#aaa' }}>
+                              {appData.waiting_time ? `${appData.waiting_time}s` : '0.0s'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Breakdown */}
+                        <div className="mono" style={{ fontSize: '0.62rem', color: '#555', marginTop: '6px', borderTop: '1px solid #111', paddingTop: '4px' }}>
+                          Cars: {bd.car ?? 0} | Buses: {bd.bus ?? 0} | Trucks: {bd.truck ?? 0} | Moto: {bd.motorcycle ?? 0}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#030303',
+                  border: '1px solid #161616',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span className="mono" style={{ fontSize: '0.68rem', color: '#666' }}>
+                    {sumoGui ? 'SUMO-GUI ACTIVE: Simulation window running on desktop' : 'HEADLESS SUMO: TraCI active at 10 Hz (step=0.1s)'}
+                  </span>
+                  <span className="mono" style={{ fontSize: '0.68rem', color: '#aaa' }}>
+                    {isSumoRunning ? `TOTAL ACTIVE: ${sumoVehicleCount}` : 'STOPPED'}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Corner Markers */}
             <div style={cornerTL} />
