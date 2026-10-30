@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edges xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/edges_file.xsd">
+    <!-- North Approach -->
+    <edge id="north_in"  from="node_north" to="center"     numLanes="2" speed="13.89" priority="3"/>
+    <edge id="north_out" from="center"     to="node_north" numLanes="2" speed="13.89" priority="3"/>
+
+    <!-- South Approach -->
+    <edge id="south_in"  from="node_south" to="center"     numLanes="2" speed="13.89" priority="3"/>
+    <edge id="south_out" from="center"     to="node_south" numLanes="2" speed="13.89" priority="3"/>
+
+    <!-- East Approach -->
+    <edge id="east_in"   from="node_east"  to="center"     numLanes="2" speed="13.89" priority="3"/>
+    <edge id="east_out"  from="center"     to="node_east"  numLanes="2" speed="13.89" priority="3"/>
+
+    <!-- West Approach -->
+    <edge id="west_in"   from="node_west"  to="center"     numLanes="2" speed="13.89" priority="3"/>
+    <edge id="west_out"  from="center"     to="node_west"  numLanes="2" speed="13.89" priority="3"/>
+</edges>
+
