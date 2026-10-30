@@ -354,14 +354,182 @@ export default function App() {
   const isArduinoConnected = Boolean(data?.hardware?.connected);
   const arduinoPort = data?.hardware?.port || 'USB';
 
+  // ── Theme State & Design Tokens ──────────────────────────────────────────
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('group_z_theme') || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+  const isLight = theme === 'light';
+
+  useEffect(() => {
+    try {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('group_z_theme', theme);
+    } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const t = {
+    bgApp: isLight ? '#f4f4f5' : '#000000',
+    bgPanel: isLight ? '#ffffff' : '#050505',
+    bgCard: isLight ? '#ffffff' : '#000000',
+    bgSubtle: isLight ? '#f9fafb' : '#050505',
+    bgInset: isLight ? '#f4f4f5' : '#0a0a0a',
+    bgTag: isLight ? '#e4e4e7' : '#111111',
+
+    borderMain: isLight ? '#e4e4e7' : '#1a1a1a',
+    borderMuted: isLight ? '#d4d4d8' : '#222222',
+    borderStrong: isLight ? '#a1a1aa' : '#333333',
+    borderHighlight: isLight ? '#09090b' : '#ffffff',
+
+    textPrimary: isLight ? '#09090b' : '#ffffff',
+    textSecondary: isLight ? '#52525b' : '#a1a1aa',
+    textMuted: isLight ? '#71717a' : '#737373',
+    textSubtle: isLight ? '#a1a1aa' : '#555555',
+    textDim: isLight ? '#cbd5e1' : '#333333',
+
+    btnBg: isLight ? '#ffffff' : '#000000',
+    btnColor: isLight ? '#09090b' : '#ffffff',
+    btnBorder: isLight ? '#d4d4d8' : '#222222',
+
+    btnActiveBg: isLight ? '#09090b' : '#ffffff',
+    btnActiveColor: isLight ? '#ffffff' : '#000000',
+    btnActiveBorder: isLight ? '#09090b' : '#ffffff',
+
+    cornerMarker: isLight ? '#a1a1aa' : '#333333',
+    trafficLightBox: isLight ? '#f4f4f5' : '#090909',
+    bulbUnlit: isLight ? '#d4d4d8' : '#222222',
+    inputBg: isLight ? '#ffffff' : '#000000',
+    inputBorder: isLight ? '#cbd5e1' : '#333333',
+
+    blue: isLight ? '#0284c7' : '#38bdf8',
+  };
+
+  const btnMinimal = {
+    backgroundColor: t.btnBg,
+    color: t.btnColor,
+    border: `1px solid ${t.btnBorder}`,
+    padding: '6px 12px',
+    fontSize: '0.7rem',
+    fontWeight: 600,
+    letterSpacing: '0.05em',
+    fontFamily: 'JetBrains Mono, monospace',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  };
+
+  const btnAction = {
+    backgroundColor: isLight ? '#f4f4f5' : '#111111',
+    color: t.textPrimary,
+    border: `1px solid ${t.borderMuted}`,
+    padding: '10px',
+    fontSize: '0.7rem',
+    fontWeight: 700,
+    fontFamily: 'JetBrains Mono, monospace',
+    cursor: 'pointer',
+    letterSpacing: '0.05em',
+    transition: 'all 0.15s ease',
+  };
+
+  const modeTabStyle = (active) => ({
+    backgroundColor: active ? t.btnActiveBg : (isLight ? '#ffffff' : '#000000'),
+    color: active ? t.btnActiveColor : t.textMuted,
+    border: 'none',
+    padding: '10px',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    fontFamily: 'JetBrains Mono, monospace',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease'
+  });
+
+  const cornerTL = {
+    position: 'absolute',
+    top: '12px',
+    left: '12px',
+    width: '12px',
+    height: '12px',
+    borderTop: `2px solid ${t.cornerMarker}`,
+    borderLeft: `2px solid ${t.cornerMarker}`,
+    pointerEvents: 'none'
+  };
+
+  const cornerTR = {
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    width: '12px',
+    height: '12px',
+    borderTop: `2px solid ${t.cornerMarker}`,
+    borderRight: `2px solid ${t.cornerMarker}`,
+    pointerEvents: 'none'
+  };
+
+  const cornerBL = {
+    position: 'absolute',
+    bottom: '12px',
+    left: '12px',
+    width: '12px',
+    height: '12px',
+    borderBottom: `2px solid ${t.cornerMarker}`,
+    borderLeft: `2px solid ${t.cornerMarker}`,
+    pointerEvents: 'none'
+  };
+
+  const cornerBR = {
+    position: 'absolute',
+    bottom: '12px',
+    right: '12px',
+    width: '12px',
+    height: '12px',
+    borderBottom: `2px solid ${t.cornerMarker}`,
+    borderRight: `2px solid ${t.cornerMarker}`,
+    pointerEvents: 'none'
+  };
+
+  const inputDurationStyle = {
+    width: '54px',
+    backgroundColor: t.inputBg,
+    color: t.textPrimary,
+    border: `1px solid ${t.inputBorder}`,
+    padding: '4px 6px',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    fontFamily: 'JetBrains Mono, monospace',
+    textAlign: 'center',
+    outline: 'none',
+  };
+
+  const presetBtnStyle = (active) => ({
+    flex: 1,
+    padding: '4px 0',
+    backgroundColor: active ? (isLight ? '#e4e4e7' : '#222222') : (isLight ? '#ffffff' : '#050505'),
+    color: active ? t.textPrimary : t.textMuted,
+    border: '1px solid',
+    borderColor: active ? (isLight ? '#a1a1aa' : '#555555') : t.borderMain,
+    fontSize: '0.65rem',
+    fontWeight: 700,
+    fontFamily: 'JetBrains Mono, monospace',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease'
+  });
+
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#000000',
-      color: '#ffffff',
+      backgroundColor: t.bgApp,
+      color: t.textPrimary,
       display: 'flex',
       flexDirection: 'column',
-      padding: '24px 32px'
+      padding: '24px 32px',
+      transition: 'background-color 0.2s ease, color 0.2s ease'
     }}>
       {showCalibrate && <Calibrate onClose={() => setShowCalibrate(false)} />}
 
@@ -370,7 +538,7 @@ export default function App() {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottom: '1px solid #1a1a1a',
+        borderBottom: `1px solid ${t.borderMain}`,
         paddingBottom: '20px',
         marginBottom: '20px'
       }}>
@@ -379,12 +547,13 @@ export default function App() {
             fontSize: '1.05rem',
             fontWeight: 800,
             letterSpacing: '0.15em',
-            border: '1px solid #ffffff',
+            border: `1px solid ${t.borderHighlight}`,
+            color: t.textPrimary,
             padding: '3px 8px'
           }}>
             GROUP Z
           </span>
-          <span className="mono" style={{ fontSize: '0.75rem', color: '#555555', letterSpacing: '0.1em' }}>
+          <span className="mono" style={{ fontSize: '0.75rem', color: t.textSubtle, letterSpacing: '0.1em' }}>
             AI TRAFFIC MANAGEMENT PLATFORM
           </span>
         </div>
@@ -396,9 +565,9 @@ export default function App() {
             onClick={() => { switchEnvironment('sumo'); if (!isSumoRunning) startSumo(); }}
             style={{
               ...btnMinimal,
-              backgroundColor: isSumoMode ? '#ffffff' : 'transparent',
-              color: isSumoMode ? '#000000' : '#ffffff',
-              borderColor: '#ffffff',
+              backgroundColor: isSumoMode ? t.btnActiveBg : 'transparent',
+              color: isSumoMode ? t.btnActiveColor : t.textPrimary,
+              borderColor: t.borderHighlight,
               fontWeight: 800,
               letterSpacing: '0.05em'
             }}
@@ -411,8 +580,9 @@ export default function App() {
             onClick={() => { switchEnvironment('video'); setSource('webcam'); }}
             style={{
               ...btnMinimal,
-              backgroundColor: (!isSumoMode) ? '#222222' : 'transparent',
-              borderColor: (!isSumoMode) ? '#ffffff' : '#333333'
+              backgroundColor: (!isSumoMode) ? (isLight ? '#e4e4e7' : '#222222') : 'transparent',
+              borderColor: (!isSumoMode) ? t.borderHighlight : t.borderMuted,
+              color: (!isSumoMode) ? t.textPrimary : t.textMuted
             }}
           >
             CAMERA
@@ -446,16 +616,16 @@ export default function App() {
             gap: '8px',
             marginLeft: '14px',
             paddingLeft: '14px',
-            borderLeft: '1px solid #1a1a1a'
+            borderLeft: `1px solid ${t.borderMain}`
           }}>
             <span style={{
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              backgroundColor: wsConnected ? '#ffffff' : '#333333',
-              boxShadow: wsConnected ? '0 0 8px #ffffff' : 'none'
+              backgroundColor: wsConnected ? (isLight ? '#16a34a' : '#ffffff') : t.borderStrong,
+              boxShadow: wsConnected ? (isLight ? '0 0 8px #16a34a' : '0 0 8px #ffffff') : 'none'
             }} />
-            <span className="mono" style={{ fontSize: '0.7rem', color: '#737373', letterSpacing: '0.05em' }}>
+            <span className="mono" style={{ fontSize: '0.7rem', color: t.textMuted, letterSpacing: '0.05em' }}>
               {wsConnected ? 'LIVE' : 'OFFLINE'}
             </span>
           </div>
@@ -467,13 +637,13 @@ export default function App() {
             gap: '8px',
             marginLeft: '14px',
             paddingLeft: '14px',
-            borderLeft: '1px solid #1a1a1a'
+            borderLeft: `1px solid ${t.borderMain}`
           }}>
             <span style={{
               width: '7px',
               height: '7px',
               borderRadius: '50%',
-              backgroundColor: isArduinoConnected ? '#22c55e' : '#555555',
+              backgroundColor: isArduinoConnected ? '#22c55e' : t.borderStrong,
               boxShadow: isArduinoConnected ? '0 0 8px #22c55e' : 'none'
             }} />
 
@@ -485,8 +655,8 @@ export default function App() {
                 ...btnMinimal,
                 fontSize: '0.65rem',
                 padding: '4px 9px',
-                borderColor: '#ffffff',
-                color: '#ffffff',
+                borderColor: t.borderHighlight,
+                color: t.textPrimary,
                 fontWeight: 700,
                 letterSpacing: '0.05em'
               }}
@@ -496,7 +666,7 @@ export default function App() {
             
             {isArduinoConnected ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="mono" style={{ fontSize: '0.72rem', color: '#86efac', fontWeight: 700, letterSpacing: '0.05em' }}>
+                <span className="mono" style={{ fontSize: '0.72rem', color: isLight ? '#166534' : '#86efac', fontWeight: 700, letterSpacing: '0.05em' }}>
                   {arduinoPort} CONNECTED
                 </span>
                 <button onClick={disconnectArduino} title="Disconnect USB serial" style={{ ...btnMinimal, fontSize: '0.62rem', padding: '3px 8px', borderColor: '#ef4444', color: '#fca5a5' }}>
@@ -505,16 +675,16 @@ export default function App() {
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="mono" style={{ fontSize: '0.68rem', color: '#737373' }}>
+                <span className="mono" style={{ fontSize: '0.68rem', color: t.textMuted }}>
                   ARDUINO:
                 </span>
                 <select
                   value={selectedPort}
                   onChange={(e) => setSelectedPort(e.target.value)}
                   style={{
-                    backgroundColor: '#0a0a0a',
-                    color: '#ffffff',
-                    border: '1px solid #333333',
+                    backgroundColor: t.bgInput,
+                    color: t.textPrimary,
+                    border: `1px solid ${t.borderStrong}`,
                     fontSize: '0.68rem',
                     fontFamily: 'JetBrains Mono, monospace',
                     padding: '3px 6px',
@@ -541,7 +711,7 @@ export default function App() {
                 <button
                   onClick={() => connectArduino(selectedPort)}
                   title="Connect to selected COM port"
-                  style={{ ...btnMinimal, fontSize: '0.65rem', padding: '3px 8px', borderColor: '#22c55e', color: '#86efac', fontWeight: 700 }}
+                  style={{ ...btnMinimal, fontSize: '0.65rem', padding: '3px 8px', borderColor: '#22c55e', color: isLight ? '#166534' : '#86efac', fontWeight: 700 }}
                 >
                   CONNECT
                 </button>
@@ -549,12 +719,40 @@ export default function App() {
                 <button
                   onClick={fetchSerialPorts}
                   title="Scan for connected serial ports"
-                  style={{ ...btnMinimal, fontSize: '0.65rem', padding: '3px 6px', borderColor: '#444' }}
+                  style={{ ...btnMinimal, fontSize: '0.65rem', padding: '3px 6px', borderColor: t.borderStrong }}
                 >
                   ↻
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Theme Toggle Button (Light / Dark) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginLeft: '14px',
+            paddingLeft: '14px',
+            borderLeft: `1px solid ${t.borderMain}`
+          }}>
+            <button
+              onClick={toggleTheme}
+              title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
+              style={{
+                ...btnMinimal,
+                backgroundColor: isLight ? '#09090b' : '#ffffff',
+                color: isLight ? '#ffffff' : '#000000',
+                borderColor: isLight ? '#09090b' : '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.68rem',
+                padding: '4px 10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>{isLight ? '☾ DARK' : '☀ LIGHT'}</span>
+            </button>
           </div>
         </div>
       </header>
@@ -608,26 +806,26 @@ export default function App() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: '#050505',
-          border: '1px solid #1a1a1a',
+          backgroundColor: t.bgPanel,
+          border: `1px solid ${t.borderMain}`,
           padding: '6px 14px',
           marginBottom: '20px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <span className="mono" style={{ fontSize: '0.68rem', color: '#555555', letterSpacing: '0.1em' }}>
+            <span className="mono" style={{ fontSize: '0.68rem', color: t.textSubtle, letterSpacing: '0.1em' }}>
               VISION ENGINE:
             </span>
             <div style={{
               display: 'inline-flex',
-              backgroundColor: '#000000',
-              border: '1px solid #222222',
+              backgroundColor: t.bgInput,
+              border: `1px solid ${t.borderMuted}`,
               padding: '2px'
             }}>
               <button
                 onClick={() => switchVisionMode('tracking')}
                 style={{
-                  backgroundColor: !isSnapshotMode ? '#ffffff' : 'transparent',
-                  color: !isSnapshotMode ? '#000000' : '#737373',
+                  backgroundColor: !isSnapshotMode ? t.btnActiveBg : 'transparent',
+                  color: !isSnapshotMode ? t.btnActiveColor : t.textMuted,
                   border: 'none',
                   padding: '6px 16px',
                   fontFamily: 'JetBrains Mono, monospace',
@@ -643,8 +841,8 @@ export default function App() {
               <button
                 onClick={() => switchVisionMode('snapshot')}
                 style={{
-                  backgroundColor: isSnapshotMode ? '#ffffff' : 'transparent',
-                  color: isSnapshotMode ? '#000000' : '#737373',
+                  backgroundColor: isSnapshotMode ? t.btnActiveBg : 'transparent',
+                  color: isSnapshotMode ? t.btnActiveColor : t.textMuted,
                   border: 'none',
                   padding: '6px 16px',
                   fontFamily: 'JetBrains Mono, monospace',
@@ -661,15 +859,15 @@ export default function App() {
           </div>
 
           {/* Minimalist Inline Telemetry */}
-          <div className="mono" style={{ fontSize: '0.7rem', color: '#737373', display: 'flex', gap: '14px' }}>
+          <div className="mono" style={{ fontSize: '0.7rem', color: t.textMuted, display: 'flex', gap: '14px' }}>
             {isSnapshotMode ? (
               <>
-                <span>NEXT: <strong style={{ color: '#ffffff' }}>{nextSnapIn}s</strong></span>
-                <span style={{ color: '#262626' }}>/</span>
-                <span>CAPTURED: <strong style={{ color: '#ffffff' }}>#{snapCount}</strong></span>
+                <span>NEXT: <strong style={{ color: t.textPrimary }}>{nextSnapIn}s</strong></span>
+                <span style={{ color: t.borderStrong }}>/</span>
+                <span>CAPTURED: <strong style={{ color: t.textPrimary }}>#{snapCount}</strong></span>
               </>
             ) : (
-              <span>RATE: <strong style={{ color: '#ffffff' }}>{fps} FPS</strong></span>
+              <span>RATE: <strong style={{ color: t.textPrimary }}>{fps} FPS</strong></span>
             )}
           </div>
         </div>
@@ -679,15 +877,15 @@ export default function App() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: '#050505',
-          border: '1px solid #1a1a1a',
+          backgroundColor: t.bgPanel,
+          border: `1px solid ${t.borderMain}`,
           padding: '8px 14px',
           marginBottom: '20px',
           flexWrap: 'wrap',
           gap: '12px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span className="mono" style={{ fontSize: '0.68rem', color: '#555555', letterSpacing: '0.1em' }}>
+            <span className="mono" style={{ fontSize: '0.68rem', color: t.textSubtle, letterSpacing: '0.1em' }}>
               SUMO ENGINE:
             </span>
             
@@ -696,19 +894,20 @@ export default function App() {
               alignItems: 'center',
               gap: '6px',
               padding: '3px 8px',
-              border: '1px solid #333333',
-              borderRadius: '2px'
+              border: `1px solid ${t.borderStrong}`,
+              borderRadius: '2px',
+              backgroundColor: t.bgSubtle
             }}>
               <span style={{
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                backgroundColor: isSumoRunning ? (isSumoPaused ? '#f59e0b' : '#22c55e') : '#555555'
+                backgroundColor: isSumoRunning ? (isSumoPaused ? '#f59e0b' : '#22c55e') : t.borderStrong
               }} />
               <span className="mono" style={{
                 fontSize: '0.68rem',
                 fontWeight: 700,
-                color: isSumoRunning ? (isSumoPaused ? '#fcd34d' : '#86efac') : '#737373'
+                color: isSumoRunning ? (isSumoPaused ? '#f59e0b' : (isLight ? '#166534' : '#86efac')) : t.textMuted
               }}>
                 {isSumoRunning ? (isSumoPaused ? 'PAUSED' : 'RUNNING') : 'STOPPED'}
               </span>
@@ -718,25 +917,25 @@ export default function App() {
             {!isSumoRunning ? (
               <button
                 onClick={() => startSumo(sumoGui)}
-                style={{ ...btnMinimal, borderColor: '#22c55e', color: '#86efac', fontWeight: 700 }}
+                style={{ ...btnMinimal, borderColor: '#22c55e', color: isLight ? '#166534' : '#86efac', fontWeight: 700 }}
               >
                 ▶ START
               </button>
             ) : (
               <>
                 {isSumoPaused ? (
-                  <button onClick={resumeSumo} style={{ ...btnMinimal, borderColor: '#22c55e', color: '#86efac' }}>
+                  <button onClick={resumeSumo} style={{ ...btnMinimal, borderColor: '#22c55e', color: isLight ? '#166534' : '#86efac' }}>
                     ▶ RESUME
                   </button>
                 ) : (
-                  <button onClick={pauseSumo} style={{ ...btnMinimal, borderColor: '#f59e0b', color: '#fcd34d' }}>
+                  <button onClick={pauseSumo} style={{ ...btnMinimal, borderColor: '#f59e0b', color: isLight ? '#b45309' : '#fcd34d' }}>
                     ⏸ PAUSE
                   </button>
                 )}
                 <button onClick={resetSumo} style={btnMinimal}>
                   ↺ RESET
                 </button>
-                <button onClick={stopSumo} style={{ ...btnMinimal, borderColor: '#ef4444', color: '#fca5a5' }}>
+                <button onClick={stopSumo} style={{ ...btnMinimal, borderColor: '#ef4444', color: isLight ? '#dc2626' : '#fca5a5' }}>
                   ⏹ STOP
                 </button>
               </>
@@ -754,8 +953,8 @@ export default function App() {
               }}
               style={{
                 ...btnMinimal,
-                backgroundColor: sumoGui ? '#ffffff' : 'transparent',
-                color: sumoGui ? '#000000' : '#737373',
+                backgroundColor: sumoGui ? t.btnActiveBg : 'transparent',
+                color: sumoGui ? t.btnActiveColor : t.textMuted,
                 fontSize: '0.65rem'
               }}
               title="Launch external SUMO-GUI window on desktop"
@@ -765,7 +964,7 @@ export default function App() {
 
             {/* Speed Factor */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '6px' }}>
-              <span className="mono" style={{ fontSize: '0.65rem', color: '#555' }}>SPEED:</span>
+              <span className="mono" style={{ fontSize: '0.65rem', color: t.textSubtle }}>SPEED:</span>
               {[0.5, 1.0, 2.0, 3.0].map((spd) => (
                 <button
                   key={spd}
@@ -774,8 +973,8 @@ export default function App() {
                     ...btnMinimal,
                     fontSize: '0.62rem',
                     padding: '2px 6px',
-                    borderColor: sumoSpeed === spd ? '#ffffff' : '#333',
-                    color: sumoSpeed === spd ? '#ffffff' : '#737373'
+                    borderColor: sumoSpeed === spd ? t.borderHighlight : t.borderStrong,
+                    color: sumoSpeed === spd ? t.textPrimary : t.textMuted
                   }}
                 >
                   {spd}x
@@ -785,10 +984,10 @@ export default function App() {
           </div>
 
           {/* Telemetry Info */}
-          <div className="mono" style={{ fontSize: '0.72rem', color: '#737373', display: 'flex', gap: '14px' }}>
-            <span>SIM TIME: <strong style={{ color: '#ffffff' }}>{sumoTime.toFixed(1)}s</strong></span>
-            <span style={{ color: '#262626' }}>/</span>
-            <span>SIM VEHICLES: <strong style={{ color: '#86efac' }}>{sumoVehicleCount}</strong></span>
+          <div className="mono" style={{ fontSize: '0.72rem', color: t.textMuted, display: 'flex', gap: '14px' }}>
+            <span>SIM TIME: <strong style={{ color: t.textPrimary }}>{sumoTime.toFixed(1)}s</strong></span>
+            <span style={{ color: t.borderStrong }}>/</span>
+            <span>SIM VEHICLES: <strong style={{ color: isLight ? '#166534' : '#86efac' }}>{sumoVehicleCount}</strong></span>
           </div>
         </div>
       )}
@@ -805,8 +1004,8 @@ export default function App() {
         <section style={{
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: '#050505',
-          border: '1px solid #1a1a1a'
+          backgroundColor: t.bgPanel,
+          border: `1px solid ${t.borderMain}`
         }}>
           {/* Feed / Simulation Header */}
           <div style={{
@@ -814,20 +1013,20 @@ export default function App() {
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '12px 16px',
-            borderBottom: '1px solid #1a1a1a'
+            borderBottom: `1px solid ${t.borderMain}`
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="mono" style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>
                 {isSumoMode ? 'SUMO ENGINE' : 'FEED 01'}
               </span>
-              <span style={{ fontSize: '0.75rem', color: '#404040' }}>/</span>
-              <span className="mono" style={{ fontSize: '0.7rem', color: '#737373' }}>
+              <span style={{ fontSize: '0.75rem', color: t.textDim }}>/</span>
+              <span className="mono" style={{ fontSize: '0.7rem', color: t.textMuted }}>
                 {isSumoMode
                   ? 'TRACI CLOSED-LOOP 4-WAY INTERSECTION'
                   : (isSnapshotMode ? 'PHOTO SNAPSHOT INSPECTION' : 'CONTINUOUS VEHICLE TRACKING')}
               </span>
             </div>
-            <div className="mono" style={{ fontSize: '0.75rem', color: '#737373' }}>
+            <div className="mono" style={{ fontSize: '0.75rem', color: t.textMuted }}>
               {isSumoMode
                 ? `TIME: ${sumoTime.toFixed(1)}s`
                 : (isSnapshotMode ? `INTERVAL: 2.0s` : `${fps} FPS`)}
@@ -838,7 +1037,7 @@ export default function App() {
           <div style={{
             position: 'relative',
             flex: 1,
-            backgroundColor: '#000000',
+            backgroundColor: isLight ? '#f8fafc' : '#000000',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -873,13 +1072,13 @@ export default function App() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  borderBottom: '1px solid #1a1a1a',
+                  borderBottom: `1px solid ${t.borderMain}`,
                   paddingBottom: '10px'
                 }}>
-                  <span className="mono" style={{ fontSize: '0.75rem', color: '#888' }}>
+                  <span className="mono" style={{ fontSize: '0.75rem', color: t.textSecondary }}>
                     APPROACH TELEMETRY — 4-WAY MICROSCOPIC FLOW
                   </span>
-                  <span className="mono" style={{ fontSize: '0.7rem', color: '#22c55e' }}>
+                  <span className="mono" style={{ fontSize: '0.7rem', color: isLight ? '#166534' : '#22c55e', fontWeight: 700 }}>
                     ● TRACI LIVE SYNCHRONIZED
                   </span>
                 </div>
@@ -902,14 +1101,15 @@ export default function App() {
                       <div
                         key={app}
                         style={{
-                          backgroundColor: '#050505',
+                          backgroundColor: t.bgPanel,
                           border: '1px solid',
-                          borderColor: sigColor === 'green' ? '#166534' : (sigColor === 'yellow' ? '#854d0e' : '#1a1a1a'),
+                          borderColor: sigColor === 'green' ? (isLight ? '#86efac' : '#166534') : (sigColor === 'yellow' ? (isLight ? '#fcd34d' : '#854d0e') : t.borderMain),
                           padding: '14px 16px',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '8px',
-                          transition: 'border-color 0.2s ease'
+                          transition: 'border-color 0.2s ease',
+                          boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -920,7 +1120,7 @@ export default function App() {
                             <span className="mono" style={{
                               fontSize: '0.75rem',
                               fontWeight: 800,
-                              color: sigColor === 'green' ? '#ffffff' : (sigColor === 'yellow' ? '#fde047' : '#737373')
+                              color: sigColor === 'green' ? (isLight ? '#166534' : '#ffffff') : (sigColor === 'yellow' ? '#f59e0b' : t.textMuted)
                             }}>
                               {timerVal}s
                             </span>
@@ -940,33 +1140,33 @@ export default function App() {
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
                           <div>
-                            <div className="mono" style={{ fontSize: '0.62rem', color: '#555' }}>VEHICLES</div>
+                            <div className="mono" style={{ fontSize: '0.62rem', color: t.textSubtle }}>VEHICLES</div>
                             <div className="mono" style={{ fontSize: '1.1rem', fontWeight: 800 }}>
                               {appData.vehicle_count ?? 0}
                             </div>
                           </div>
                           <div>
-                            <div className="mono" style={{ fontSize: '0.62rem', color: '#555' }}>QUEUE</div>
-                            <div className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: (appData.queue_length ?? 0) > 3 ? '#f59e0b' : '#fff' }}>
+                            <div className="mono" style={{ fontSize: '0.62rem', color: t.textSubtle }}>QUEUE</div>
+                            <div className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: (appData.queue_length ?? 0) > 3 ? '#f59e0b' : t.textPrimary }}>
                               {appData.queue_length ?? appData.queue ?? 0}
                             </div>
                           </div>
                           <div>
-                            <div className="mono" style={{ fontSize: '0.62rem', color: '#555' }}>MEAN SPEED</div>
-                            <div className="mono" style={{ fontSize: '0.85rem', color: '#aaa' }}>
+                            <div className="mono" style={{ fontSize: '0.62rem', color: t.textSubtle }}>MEAN SPEED</div>
+                            <div className="mono" style={{ fontSize: '0.85rem', color: t.textSecondary }}>
                               {appData.mean_speed ? `${appData.mean_speed} m/s` : '—'}
                             </div>
                           </div>
                           <div>
-                            <div className="mono" style={{ fontSize: '0.62rem', color: '#555' }}>WAIT TIME</div>
-                            <div className="mono" style={{ fontSize: '0.85rem', color: '#aaa' }}>
+                            <div className="mono" style={{ fontSize: '0.62rem', color: t.textSubtle }}>WAIT TIME</div>
+                            <div className="mono" style={{ fontSize: '0.85rem', color: t.textSecondary }}>
                               {appData.waiting_time ? `${appData.waiting_time}s` : '0.0s'}
                             </div>
                           </div>
                         </div>
 
                         {/* Breakdown */}
-                        <div className="mono" style={{ fontSize: '0.62rem', color: '#555', marginTop: '6px', borderTop: '1px solid #111', paddingTop: '4px' }}>
+                        <div className="mono" style={{ fontSize: '0.62rem', color: t.textMuted, marginTop: '6px', borderTop: `1px solid ${t.borderMain}`, paddingTop: '4px' }}>
                           Cars: {bd.car ?? 0} | Buses: {bd.bus ?? 0} | Trucks: {bd.truck ?? 0} | Moto: {bd.motorcycle ?? 0}
                         </div>
                       </div>
@@ -976,16 +1176,16 @@ export default function App() {
 
                 <div style={{
                   padding: '8px 12px',
-                  backgroundColor: '#030303',
-                  border: '1px solid #161616',
+                  backgroundColor: t.bgSubtle,
+                  border: `1px solid ${t.borderMain}`,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <span className="mono" style={{ fontSize: '0.68rem', color: '#666' }}>
+                  <span className="mono" style={{ fontSize: '0.68rem', color: t.textMuted }}>
                     {sumoGui ? 'SUMO-GUI ACTIVE: Simulation window running on desktop' : 'HEADLESS SUMO: TraCI active at 10 Hz (step=0.1s)'}
                   </span>
-                  <span className="mono" style={{ fontSize: '0.68rem', color: '#aaa' }}>
+                  <span className="mono" style={{ fontSize: '0.68rem', color: t.textSecondary }}>
                     {isSumoRunning ? `TOTAL ACTIVE: ${sumoVehicleCount}` : 'STOPPED'}
                   </span>
                 </div>
@@ -1002,13 +1202,13 @@ export default function App() {
           {/* Quick Simulation Bar */}
           <div style={{
             padding: '12px 16px',
-            borderTop: '1px solid #1a1a1a',
+            borderTop: `1px solid ${t.borderMain}`,
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
             flexWrap: 'wrap'
           }}>
-            <span className="mono" style={{ fontSize: '0.65rem', color: '#666' }}>
+            <span className="mono" style={{ fontSize: '0.65rem', color: t.textMuted }}>
               TRIGGER AMBULANCE:
             </span>
             {['north', 'south', 'east', 'west'].map((app) => (
@@ -1019,8 +1219,8 @@ export default function App() {
                   ...btnMinimal,
                   fontSize: '0.65rem',
                   padding: '4px 8px',
-                  borderColor: activeAmbulance === app ? '#ef4444' : '#222',
-                  color: activeAmbulance === app ? '#ef4444' : '#fff'
+                  borderColor: activeAmbulance === app ? '#ef4444' : t.borderMuted,
+                  color: activeAmbulance === app ? '#ef4444' : t.textPrimary
                 }}
               >
                 + {app.toUpperCase()}
@@ -1034,22 +1234,22 @@ export default function App() {
           
           {/* Phase Status Box with 3-bulb light box */}
           <div style={{
-            backgroundColor: '#050505',
-            border: '1px solid #1a1a1a',
+            backgroundColor: t.bgPanel,
+            border: `1px solid ${t.borderMain}`,
             padding: '24px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
               <div>
-                <div className="mono" style={{ fontSize: '0.7rem', color: '#737373', letterSpacing: '0.1em', marginBottom: '4px' }}>
+                <div className="mono" style={{ fontSize: '0.7rem', color: t.textMuted, letterSpacing: '0.1em', marginBottom: '4px' }}>
                   ACTIVE PHASE
                 </div>
-                <div style={{ fontSize: '3rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                <div style={{ fontSize: '3rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: t.textPrimary }}>
                   PHASE {currentPhase}
                 </div>
-                <div className="mono" style={{ fontSize: '0.75rem', color: '#737373', marginTop: '6px' }}>
+                <div className="mono" style={{ fontSize: '0.75rem', color: t.textMuted, marginTop: '6px' }}>
                   {currentPhase === 'A' ? 'NORTH · SOUTH GREEN' : 'EAST · WEST GREEN'}
                 </div>
-                <div className="mono" style={{ fontSize: '0.68rem', color: '#38bdf8', marginTop: '6px' }}>
+                <div className="mono" style={{ fontSize: '0.68rem', color: t.blue, marginTop: '6px' }}>
                   RULE: {reason.toUpperCase().replace(/_/g, ' ')}
                 </div>
               </div>
@@ -1059,9 +1259,9 @@ export default function App() {
                 <div style={{
                   display: 'flex',
                   gap: '8px',
-                  background: '#090909',
+                  background: t.trafficLightBox,
                   padding: '8px 12px',
-                  border: '1px solid #222222',
+                  border: `1px solid ${t.borderMuted}`,
                   borderRadius: '4px'
                 }}>
                   {/* RED BULB */}
@@ -1069,28 +1269,31 @@ export default function App() {
                     width: '14px',
                     height: '14px',
                     borderRadius: '50%',
-                    backgroundColor: signalState === 'red' ? '#ffffff' : '#222222',
-                    boxShadow: signalState === 'red' ? '0 0 10px #ffffff' : 'none'
+                    backgroundColor: signalState === 'red' ? '#ef4444' : t.bulbUnlit,
+                    boxShadow: signalState === 'red' ? '0 0 10px #ef4444' : 'none',
+                    transition: 'all 0.2s ease'
                   }} />
                   {/* YELLOW BULB */}
                   <div style={{
                     width: '14px',
                     height: '14px',
                     borderRadius: '50%',
-                    backgroundColor: signalState === 'yellow' ? '#ffffff' : '#222222',
-                    boxShadow: signalState === 'yellow' ? '0 0 10px #ffffff' : 'none'
+                    backgroundColor: signalState === 'yellow' ? '#f59e0b' : t.bulbUnlit,
+                    boxShadow: signalState === 'yellow' ? '0 0 10px #f59e0b' : 'none',
+                    transition: 'all 0.2s ease'
                   }} />
                   {/* GREEN BULB */}
                   <div style={{
                     width: '14px',
                     height: '14px',
                     borderRadius: '50%',
-                    backgroundColor: signalState === 'green' ? '#ffffff' : '#222222',
-                    boxShadow: signalState === 'green' ? '0 0 10px #ffffff' : 'none'
+                    backgroundColor: signalState === 'green' ? '#22c55e' : t.bulbUnlit,
+                    boxShadow: signalState === 'green' ? '0 0 10px #22c55e' : 'none',
+                    transition: 'all 0.2s ease'
                   }} />
                 </div>
 
-                <div className="mono" style={{ fontSize: '1.4rem', fontWeight: 700 }}>
+                <div className="mono" style={{ fontSize: '1.4rem', fontWeight: 700, color: t.textPrimary }}>
                   {String(remaining).padStart(2, '0')}s
                 </div>
               </div>
@@ -1101,8 +1304,8 @@ export default function App() {
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: '1px',
-              backgroundColor: '#1a1a1a',
-              border: '1px solid #1a1a1a'
+              backgroundColor: t.borderMain,
+              border: `1px solid ${t.borderMain}`
             }}>
               <button
                 onClick={() => switchMode('adaptive')}
@@ -1127,16 +1330,16 @@ export default function App() {
                 }}>
                   {/* ── Section 1: Phase A ────────────────── */}
                   <div style={{
-                    backgroundColor: '#000000',
+                    backgroundColor: t.bgCard,
                     border: '1px solid',
-                    borderColor: currentPhase === 'A' && isLoopRunning ? '#ffffff' : '#222222',
+                    borderColor: currentPhase === 'A' && isLoopRunning ? t.borderHighlight : t.borderMuted,
                     padding: '10px 12px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '8px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className="mono" style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em' }}>
+                      <span className="mono" style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', color: t.textPrimary }}>
                         PHASE A (N · S)
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
@@ -1151,7 +1354,7 @@ export default function App() {
                           }}
                           style={inputDurationStyle}
                         />
-                        <span className="mono" style={{ fontSize: '0.65rem', color: '#666666' }}>s</span>
+                        <span className="mono" style={{ fontSize: '0.65rem', color: t.textMuted }}>s</span>
                       </div>
                     </div>
 
@@ -1171,16 +1374,16 @@ export default function App() {
 
                   {/* ── Section 2: Phase B ────────────────── */}
                   <div style={{
-                    backgroundColor: '#000000',
+                    backgroundColor: t.bgCard,
                     border: '1px solid',
-                    borderColor: currentPhase === 'B' && isLoopRunning ? '#ffffff' : '#222222',
+                    borderColor: currentPhase === 'B' && isLoopRunning ? t.borderHighlight : t.borderMuted,
                     padding: '10px 12px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '8px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className="mono" style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em' }}>
+                      <span className="mono" style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', color: t.textPrimary }}>
                         PHASE B (E · W)
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
@@ -1195,7 +1398,7 @@ export default function App() {
                           }}
                           style={inputDurationStyle}
                         />
-                        <span className="mono" style={{ fontSize: '0.65rem', color: '#666666' }}>s</span>
+                        <span className="mono" style={{ fontSize: '0.65rem', color: t.textMuted }}>s</span>
                       </div>
                     </div>
 
@@ -1222,13 +1425,13 @@ export default function App() {
                       style={{
                         ...btnAction,
                         width: '100%',
-                        backgroundColor: '#ffffff',
-                        color: '#000000',
+                        backgroundColor: t.btnActiveBg,
+                        color: t.btnActiveColor,
                         fontWeight: 800,
                         fontSize: '0.72rem',
                         padding: '10px',
                         letterSpacing: '0.06em',
-                        boxShadow: '0 0 12px rgba(255, 255, 255, 0.15)'
+                        boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.1)' : '0 0 12px rgba(255, 255, 255, 0.15)'
                       }}
                     >
                       ▶ VALIDATE & START MANUAL LOOP ({manualA}s ➔ {manualB}s)
@@ -1239,9 +1442,9 @@ export default function App() {
                         onClick={startManualLoop}
                         style={{
                           ...btnAction,
-                          backgroundColor: '#111111',
-                          borderColor: '#444444',
-                          color: '#ffffff',
+                          backgroundColor: isLight ? '#f1f5f9' : '#111111',
+                          borderColor: t.borderStrong,
+                          color: t.textPrimary,
                           fontSize: '0.68rem',
                           padding: '8px'
                         }}
@@ -1252,9 +1455,9 @@ export default function App() {
                         onClick={stopManualLoop}
                         style={{
                           ...btnAction,
-                          backgroundColor: '#2a0909',
+                          backgroundColor: isLight ? '#fee2e2' : '#2a0909',
                           borderColor: '#ef4444',
-                          color: '#fca5a5',
+                          color: isLight ? '#dc2626' : '#fca5a5',
                           fontSize: '0.68rem',
                           padding: '8px'
                         }}
@@ -1268,9 +1471,9 @@ export default function App() {
                 <div className="mono" style={{
                   fontSize: '0.64rem',
                   padding: '6px 10px',
-                  backgroundColor: '#050505',
-                  border: '1px solid #1a1a1a',
-                  color: isLoopRunning ? '#ffffff' : '#737373',
+                  backgroundColor: t.bgSubtle,
+                  border: `1px solid ${t.borderMain}`,
+                  color: isLoopRunning ? t.textPrimary : t.textMuted,
                   textAlign: 'center'
                 }}>
                   {isLoopRunning
@@ -1283,12 +1486,12 @@ export default function App() {
 
           {/* Approaches 2x2 Grid with Vehicle Breakdown */}
           <div style={{
-            backgroundColor: '#050505',
-            border: '1px solid #1a1a1a',
+            backgroundColor: t.bgPanel,
+            border: `1px solid ${t.borderMain}`,
             padding: '20px',
             flex: 1
           }}>
-            <div className="mono" style={{ fontSize: '0.7rem', color: '#737373', letterSpacing: '0.1em', marginBottom: '14px' }}>
+            <div className="mono" style={{ fontSize: '0.7rem', color: t.textMuted, letterSpacing: '0.1em', marginBottom: '14px' }}>
               APPROACH TELEMETRY & VEHICLE CLASSIFICATION
             </div>
 
@@ -1305,17 +1508,18 @@ export default function App() {
 
                 return (
                   <div key={app} style={{
-                    backgroundColor: '#000000',
+                    backgroundColor: t.bgCard,
                     border: '1px solid',
-                    borderColor: hasAmb ? '#ef4444' : '#1a1a1a',
+                    borderColor: hasAmb ? '#ef4444' : t.borderMain,
                     padding: '12px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    minHeight: '145px'
+                    minHeight: '145px',
+                    boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.04)' : 'none'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className="mono" style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                      <span className="mono" style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: t.textPrimary }}>
                         {app.toUpperCase()} {hasAmb && '🚑'}
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1323,7 +1527,7 @@ export default function App() {
                         <span className="mono" style={{
                           fontSize: '0.75rem',
                           fontWeight: 800,
-                          color: isGreen ? '#ffffff' : (info.signal === 'yellow' ? '#fde047' : '#737373')
+                          color: isGreen ? (isLight ? '#166534' : '#ffffff') : (info.signal === 'yellow' ? '#f59e0b' : t.textMuted)
                         }}>
                           {timerVal}s
                         </span>
@@ -1331,8 +1535,8 @@ export default function App() {
                           fontSize: '0.65rem',
                           padding: '2px 6px',
                           border: '1px solid',
-                          borderColor: isGreen ? '#ffffff' : '#333333',
-                          color: isGreen ? '#ffffff' : '#737373'
+                          borderColor: isGreen ? '#22c55e' : t.borderStrong,
+                          color: isGreen ? '#22c55e' : t.textMuted
                         }}>
                           {info.signal.toUpperCase()}
                         </span>
@@ -1341,18 +1545,18 @@ export default function App() {
 
                     <div style={{ margin: '8px 0' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                        <span className="mono" style={{ fontSize: '1.5rem', fontWeight: 800 }}>
+                        <span className="mono" style={{ fontSize: '1.5rem', fontWeight: 800, color: t.textPrimary }}>
                           {String(info.queue).padStart(2, '0')}
                         </span>
-                        <span style={{ fontSize: '0.68rem', color: '#737373' }}>VEHICLES</span>
+                        <span style={{ fontSize: '0.68rem', color: t.textMuted }}>VEHICLES</span>
                       </div>
                       
                       {/* Detailed vehicle counts */}
-                      <div className="mono" style={{ fontSize: '0.62rem', color: '#888', marginTop: '4px', lineHeight: 1.4 }}>
+                      <div className="mono" style={{ fontSize: '0.62rem', color: t.textMuted, marginTop: '4px', lineHeight: 1.4 }}>
                         CARS:{bd.car || 0} · TRUCKS:{bd.truck || 0} · BIKES:{bd.motorcycle || 0} · BUS:{bd.bus || 0}
                       </div>
 
-                      <div className="mono" style={{ fontSize: '0.65rem', color: '#555555', marginTop: '2px' }}>
+                      <div className="mono" style={{ fontSize: '0.65rem', color: t.textSubtle, marginTop: '2px' }}>
                         WAIT {Math.round(info.waiting_time)}s (CAP: 30s)
                       </div>
                     </div>
@@ -1362,10 +1566,10 @@ export default function App() {
                       style={{
                         width: '100%',
                         padding: '6px',
-                        backgroundColor: isPedActive ? '#ef4444' : 'transparent',
-                        color: isPedActive ? '#ffffff' : '#737373',
+                        backgroundColor: isPedActive ? '#ef4444' : (isLight ? '#f1f5f9' : 'transparent'),
+                        color: isPedActive ? '#ffffff' : t.textMuted,
                         border: '1px solid',
-                        borderColor: isPedActive ? '#ef4444' : '#222222',
+                        borderColor: isPedActive ? '#ef4444' : t.borderMuted,
                         fontSize: '0.65rem',
                         fontWeight: 700,
                         letterSpacing: '0.05em',
@@ -1388,134 +1592,19 @@ export default function App() {
       <footer style={{
         marginTop: '20px',
         paddingTop: '14px',
-        borderTop: '1px solid #1a1a1a',
+        borderTop: `1px solid ${t.borderMain}`,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span className="mono" style={{ fontSize: '0.7rem', color: '#444444' }}>STATUS:</span>
-          <span className="mono" style={{ fontSize: '0.7rem', color: '#999999' }}>{log}</span>
+          <span className="mono" style={{ fontSize: '0.7rem', color: t.textSubtle }}>STATUS:</span>
+          <span className="mono" style={{ fontSize: '0.7rem', color: t.textSecondary }}>{log}</span>
         </div>
-        <div className="mono" style={{ fontSize: '0.7rem', color: '#444444' }}>
+        <div className="mono" style={{ fontSize: '0.7rem', color: t.textSubtle }}>
           SAMPLING: {isSnapshotMode ? `PHOTO (${snapshotInterval}s)` : 'CONTINUOUS'} · MAX WAIT: 30s · ALL-YELLOW: 3s
         </div>
       </footer>
     </div>
   );
-}
-
-// ── Minimalist Styles ──────────────────────────────────────────────────────────
-
-const btnMinimal = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  border: '1px solid #222222',
-  padding: '6px 12px',
-  fontSize: '0.7rem',
-  fontWeight: 600,
-  letterSpacing: '0.05em',
-  fontFamily: 'JetBrains Mono, monospace',
-  cursor: 'pointer',
-  transition: 'border-color 0.2s',
-};
-
-const btnAction = {
-  backgroundColor: '#111111',
-  color: '#ffffff',
-  border: '1px solid #222222',
-  padding: '10px',
-  fontSize: '0.7rem',
-  fontWeight: 700,
-  fontFamily: 'JetBrains Mono, monospace',
-  cursor: 'pointer',
-  letterSpacing: '0.05em',
-};
-
-function modeTabStyle(active) {
-  return {
-    backgroundColor: active ? '#ffffff' : '#000000',
-    color: active ? '#000000' : '#737373',
-    border: 'none',
-    padding: '10px',
-    fontSize: '0.75rem',
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    fontFamily: 'JetBrains Mono, monospace',
-    cursor: 'pointer',
-    transition: 'all 0.15s ease'
-  };
-}
-
-const cornerTL = {
-  position: 'absolute',
-  top: '12px',
-  left: '12px',
-  width: '12px',
-  height: '12px',
-  borderTop: '2px solid #333333',
-  borderLeft: '2px solid #333333',
-  pointerEvents: 'none'
-};
-
-const cornerTR = {
-  position: 'absolute',
-  top: '12px',
-  right: '12px',
-  width: '12px',
-  height: '12px',
-  borderTop: '2px solid #333333',
-  borderRight: '2px solid #333333',
-  pointerEvents: 'none'
-};
-
-const cornerBL = {
-  position: 'absolute',
-  bottom: '12px',
-  left: '12px',
-  width: '12px',
-  height: '12px',
-  borderBottom: '2px solid #333333',
-  borderLeft: '2px solid #333333',
-  pointerEvents: 'none'
-};
-
-const cornerBR = {
-  position: 'absolute',
-  bottom: '12px',
-  right: '12px',
-  width: '12px',
-  height: '12px',
-  borderBottom: '2px solid #333333',
-  borderRight: '2px solid #333333',
-  pointerEvents: 'none'
-};
-
-const inputDurationStyle = {
-  width: '54px',
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  border: '1px solid #333333',
-  padding: '4px 6px',
-  fontSize: '0.8rem',
-  fontWeight: 700,
-  fontFamily: 'JetBrains Mono, monospace',
-  textAlign: 'center',
-  outline: 'none',
-};
-
-function presetBtnStyle(active) {
-  return {
-    flex: 1,
-    padding: '4px 0',
-    backgroundColor: active ? '#222222' : '#050505',
-    color: active ? '#ffffff' : '#737373',
-    border: '1px solid',
-    borderColor: active ? '#555555' : '#1a1a1a',
-    fontSize: '0.65rem',
-    fontWeight: 600,
-    fontFamily: 'JetBrains Mono, monospace',
-    cursor: 'pointer',
-    transition: 'all 0.15s ease'
-  };
 }

@@ -11,6 +11,17 @@
   --text-subtle: #404040;
 }
 
+:root[data-theme="light"] {
+  --bg-primary: #f4f4f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e4e4e7;
+  --border: #e4e4e7;
+  --border-focus: #a1a1aa;
+  --text-main: #09090b;
+  --text-muted: #71717a;
+  --text-subtle: #a1a1aa;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -23,6 +34,7 @@ body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .mono {
@@ -35,9 +47,9 @@ body {
   height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #000;
+  background: var(--bg-primary);
 }
 ::-webkit-scrollbar-thumb {
-  background: #222;
+  background: var(--border);
   border-radius: 2px;
 }
