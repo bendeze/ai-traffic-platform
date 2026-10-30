@@ -893,8 +893,9 @@ export default function App() {
                 }}>
                   {['north', 'south', 'east', 'west'].map((app) => {
                     const appData = sumoApproaches[app] || data?.approaches?.[app] || {};
-                    const sigColor = appData.signal || 'red';
+                    const sigColor = appData.signal || data?.approaches?.[app]?.signal || 'red';
                     const sigColorHex = sigColor === 'green' ? '#22c55e' : (sigColor === 'yellow' ? '#f59e0b' : '#ef4444');
+                    const timerVal = appData.timer ?? data?.approaches?.[app]?.timer ?? 0;
                     const bd = appData.breakdown || {};
 
                     return (
@@ -902,27 +903,39 @@ export default function App() {
                         key={app}
                         style={{
                           backgroundColor: '#050505',
-                          border: '1px solid #1a1a1a',
+                          border: '1px solid',
+                          borderColor: sigColor === 'green' ? '#166534' : (sigColor === 'yellow' ? '#854d0e' : '#1a1a1a'),
                           padding: '14px 16px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '8px'
+                          gap: '8px',
+                          transition: 'border-color 0.2s ease'
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span className="mono" style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.05em' }}>
                             {app.toUpperCase()} APPROACH
                           </span>
-                          <span style={{
-                            fontSize: '0.65rem',
-                            fontWeight: 800,
-                            color: sigColorHex,
-                            border: `1px solid ${sigColorHex}`,
-                            padding: '2px 6px',
-                            borderRadius: '2px'
-                          }}>
-                            {sigColor.toUpperCase()}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="mono" style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              color: sigColor === 'green' ? '#ffffff' : (sigColor === 'yellow' ? '#fde047' : '#737373')
+                            }}>
+                              {timerVal}s
+                            </span>
+                            <span style={{
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              color: sigColorHex,
+                              border: `1px solid ${sigColorHex}`,
+                              padding: '2px 6px',
+                              borderRadius: '2px',
+                              backgroundColor: `${sigColorHex}15`
+                            }}>
+                              {sigColor.toUpperCase()}
+                            </span>
+                          </div>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>

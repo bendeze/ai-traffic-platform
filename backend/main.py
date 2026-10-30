@@ -162,6 +162,8 @@ async def broadcast_loop():
                 ws_clients.remove(ws)
 
 def _build_payload():
+    now = time.time()
+    safety.update(now)
     traffic_state = estimator.get_state()
     approach_signals = safety.get_approach_states()
     approach_timers = safety.get_approach_timers()

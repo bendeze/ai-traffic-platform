@@ -134,6 +134,7 @@ class SUMOManager:
 
                 # 3. Synchronize authoritative SafetyManager states to SUMO
                 if self.safety_manager:
+                    self.safety_manager.update(time.time())
                     current_signals = self.safety_manager.get_approach_states()
                     self.traffic_adapter.apply_signals(current_signals)
 
@@ -151,7 +152,17 @@ class SUMOManager:
     def get_telemetry(self) -> Dict[str, Any]:
         """Provides structured telemetry for WebSocket broadcast and API."""
         metrics = self.perception_adapter.get_metrics()
-        total_vehs = sum(m.get("vehicle_count", 0) for m in metrics.values())
+        approach_signals = self.safety_manager.get_approach_states() if self.safety_manager else {}
+        approach_timers = self.safety_manager.get_approach_timers() if self.safety_manager else {}
+
+        telemetry_approaches = {}
+        for app in ("north", "south", "east", "west"):
+            m = dict(metrics.get(app, {}))
+            m["signal"] = approach_signals.get(app, "red")
+            m["timer"] = approach_timers.get(app, 0)
+            telemetry_approaches[app] = m
+
+        total_vehs = sum(m.get("vehicle_count", 0) for m in telemetry_approaches.values())
         return {
             "is_running": self.is_running,
             "is_paused": self.is_paused,
@@ -160,7 +171,7 @@ class SUMOManager:
             "speed_factor": self.speed_factor,
             "active_mode": self.active_mode,
             "active_vehicle_count": total_vehs,
-            "approaches": metrics,
+            "approaches": telemetry_approaches,
             "metrics": metrics_collector.get_summary()
         }
 
