@@ -1,0 +1,7 @@
+"fastapi[standard]"
+uvicorn[standard]
+ultralytics
+opencv-python
+numpy
+pyserial
+python-multipart
