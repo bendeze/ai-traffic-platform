@@ -9,6 +9,7 @@ dependencies = [
     "opencv-python>=5.0.0.93",
     "pyserial>=3.5",
     "python-multipart>=0.0.32",
+    "sumolib>=1.28.0",
     "traci>=1.28.0",
     "ultralytics>=8.4.191",
 ]

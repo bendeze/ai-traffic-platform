@@ -56,6 +56,7 @@ dependencies = [
     { name = "opencv-python" },
     { name = "pyserial" },
     { name = "python-multipart" },
+    { name = "sumolib" },
     { name = "traci" },
     { name = "ultralytics" },
 ]
@@ -66,6 +67,7 @@ requires-dist = [
     { name = "opencv-python", specifier = ">=5.0.0.93" },
     { name = "pyserial", specifier = ">=3.5" },
     { name = "python-multipart", specifier = ">=0.0.32" },
+    { name = "sumolib", specifier = ">=1.28.0" },
     { name = "traci", specifier = ">=1.28.0" },
     { name = "ultralytics", specifier = ">=8.4.191" },
 ]

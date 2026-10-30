@@ -404,6 +404,12 @@ async def update_approaches(body: dict):
     save_settings(settings)
     return {"status": "ok", "saved": len(settings.approaches)}
 
+# ── SUMO Simulation Endpoints ──────────────────────────────────────────────────
+@app.get("/simulation/sumo/diagnostics")
+async def get_sumo_diagnostics():
+    from simulation.sumo.environment import sumo_env
+    return sumo_env.get_diagnostics()
+
 # ── Arduino Hardware Serial Endpoints ──────────────────────────────────────────
 @app.get("/serial/status")
 async def get_serial_status():
