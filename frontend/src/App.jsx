@@ -261,7 +261,7 @@ export default function App() {
     }
   };
 
-  const activeEnvironment = data?.active_environment || 'video';
+  const activeEnvironment = data?.active_environment || 'sumo';
   const isSumoMode = activeEnvironment === 'sumo';
   const sumoData = data?.simulation || {};
   const isSumoRunning = Boolean(sumoData?.is_running);
@@ -391,34 +391,7 @@ export default function App() {
 
         {/* Operating Environment & Source Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            onClick={() => { switchEnvironment('video'); setSource('test_intersection.mp4'); }}
-            style={{
-              ...btnMinimal,
-              backgroundColor: (!isSumoMode) ? '#222222' : 'transparent',
-              borderColor: (!isSumoMode) ? '#ffffff' : '#333333'
-            }}
-          >
-            VIDEO
-          </button>
-          <button
-            onClick={() => { switchEnvironment('video'); setSource('webcam'); }}
-            style={btnMinimal}
-          >
-            CAMERA
-          </button>
-
-          <label style={{ ...btnMinimal, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
-            UPLOAD
-            <input
-              type="file"
-              accept="video/*"
-              onChange={(e) => { switchEnvironment('video'); handleFileUpload(e); }}
-              style={{ display: 'none' }}
-            />
-          </label>
-
-          {/* SUMO Simulation Environment Button */}
+          {/* Primary SUMO Simulation Environment */}
           <button
             onClick={() => { switchEnvironment('sumo'); if (!isSumoRunning) startSumo(); }}
             style={{
@@ -433,10 +406,38 @@ export default function App() {
             SUMO SIMULATION
           </button>
 
+          {/* Physical Camera / Webcam */}
+          <button
+            onClick={() => { switchEnvironment('video'); setSource('webcam'); }}
+            style={{
+              ...btnMinimal,
+              backgroundColor: (!isSumoMode) ? '#222222' : 'transparent',
+              borderColor: (!isSumoMode) ? '#ffffff' : '#333333'
+            }}
+          >
+            CAMERA
+          </button>
+
+          {/* Upload Custom Video Footage */}
+          <label style={{ ...btnMinimal, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+            UPLOAD
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(e) => { switchEnvironment('video'); handleFileUpload(e); }}
+              style={{ display: 'none' }}
+            />
+          </label>
+
           {!isSumoMode && (
-            <button onClick={() => setShowCalibrate(true)} style={{ ...btnMinimal, borderColor: '#555' }}>
-              CALIBRATE REGIONS
-            </button>
+            <>
+              <button onClick={stopFeed} style={btnMinimal}>
+                HALT
+              </button>
+              <button onClick={() => setShowCalibrate(true)} style={{ ...btnMinimal, borderColor: '#555' }}>
+                CALIBRATE REGIONS
+              </button>
+            </>
           )}
 
           <div style={{

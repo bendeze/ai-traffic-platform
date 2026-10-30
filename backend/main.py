@@ -32,7 +32,7 @@ current_frame: Optional[np.ndarray] = None
 processing  = False
 video_source: Optional[str] = None
 active_source: Optional[str] = None
-active_environment: str = "video"  # "video" or "sumo"
+active_environment: str = "sumo"  # Default: SUMO Simulation Mode
 ped_requests = {a.name: False for a in settings.approaches}
 active_ambulance: Optional[str] = None
 
