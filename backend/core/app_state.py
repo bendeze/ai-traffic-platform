@@ -29,8 +29,8 @@ class AppState:
         self.serial_mgr: SerialManager = SerialManager(self.settings)
         self.sumo_mgr: SUMOManager = sumo_mgr
 
-        # Connect simulation manager to authoritative traffic controllers
-        self.sumo_mgr.attach_traffic_controllers(self.engine, self.safety, self.estimator)
+        # Connect simulation manager to authoritative traffic controllers and AppState
+        self.sumo_mgr.attach_traffic_controllers(self.engine, self.safety, self.estimator, self)
 
         # Real-time WebSockets & Frames
         self.ws_clients: List[WebSocket] = []

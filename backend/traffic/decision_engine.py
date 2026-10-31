@@ -53,6 +53,9 @@ class DecisionEngine:
 
         # ── ACTIVE PEDESTRIAN 10s RED OVERRIDE ────────────────────────────────
         if self.safety_ref and self.safety_ref.is_pedestrian_red_active(now):
+            red_phase = self.safety_ref.pedestrian_red_phase
+            for app in self.settings.phases.get(red_phase, []):
+                ped_requests[app] = False
             rem = max(1, int(round(self.safety_ref.pedestrian_red_until - now)))
             return {
                 "phase": self.safety_ref.current_phase,
@@ -95,12 +98,13 @@ class DecisionEngine:
         ped_needed = [a for a, req in ped_requests.items() if req]
         if ped_needed:
             app = ped_needed[0]
-            ped_requests[app] = False
+            target_red_phase = "A" if app in self.settings.phases.get("A", []) else "B"
+            for a in self.settings.phases.get(target_red_phase, []):
+                ped_requests[a] = False
             if self.safety_ref:
                 self.safety_ref.trigger_pedestrian_red(app, duration=10.0)
             self.last_pedestrian_approach = app
             self.last_reason = f"pedestrian_crossing_{app.upper()}_10s_RED"
-            target_red_phase = "A" if app in self.settings.phases.get("A", []) else "B"
             active_green_phase = "B" if target_red_phase == "A" else "A"
             return {
                 "phase": active_green_phase,

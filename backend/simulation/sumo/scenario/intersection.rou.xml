@@ -120,5 +120,14 @@
     <flow id="flow_w_n_car"   type="car"        route="r_west_to_north"  begin="0" end="3600" vehsPerHour="65"  departLane="1"    departSpeed="max"/>
     <flow id="flow_w_bus"     type="bus"        route="r_west_to_east"   begin="0" end="3600" vehsPerHour="25"  departLane="best" departSpeed="max"/>
 
-</routes>
+    <!-- ====================================================================== -->
+    <!-- SCHEDULED EMERGENCY AMBULANCE INJECTIONS FOR PREEMPTION VERIFICATION   -->
+    <!-- ====================================================================== -->
+    <vehicle id="amb_north_25"  type="emergency_ambulance" route="r_north_to_south" depart="25"  departSpeed="max" departLane="best"/>
+    <vehicle id="amb_east_70"   type="emergency_ambulance" route="r_east_to_west"   depart="70"  departSpeed="max" departLane="best"/>
+    <vehicle id="amb_south_130" type="emergency_ambulance" route="r_south_to_north" depart="130" departSpeed="max" departLane="best"/>
+    <vehicle id="amb_west_190"  type="emergency_ambulance" route="r_west_to_east"   depart="190" departSpeed="max" departLane="best"/>
+    <flow id="flow_amb_north_periodic" type="emergency_ambulance" route="r_north_to_south" begin="250" end="3600" period="100" departLane="best" departSpeed="max"/>
+    <flow id="flow_amb_east_periodic"  type="emergency_ambulance" route="r_east_to_west"   begin="300" end="3600" period="120" departLane="best" departSpeed="max"/>
 
+</routes>

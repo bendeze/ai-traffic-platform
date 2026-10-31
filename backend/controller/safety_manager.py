@@ -86,6 +86,7 @@ class SafetyManager:
             self.pedestrian_red_phase = None
             self._is_pedestrian_transition = False
             self._phase_start = now
+            self.remaining_green = float(self.settings.timing.min_green)
 
         if self._in_transition:
             elapsed = now - (self._transition_start or now)

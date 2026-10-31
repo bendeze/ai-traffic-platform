@@ -14,7 +14,7 @@ class SUMOManager:
     """
     Master coordinator for SUMO Simulation Mode.
     Orchestrates connection lifecycle, closed-loop perception feeding,
-    FSM signal enforcement, and telemetry reporting.
+    FSM signal enforcement, emergency vehicle injection, and telemetry reporting.
     """
 
     def __init__(self, settings=None):
@@ -37,16 +37,18 @@ class SUMOManager:
         self._pause_event = threading.Event()
         self._pause_event.set()  # Unpaused initially
 
-        # References to external FSM and SafetyManager
+        # References to external FSM, SafetyManager, and AppState
         self.fsm_engine = None
         self.safety_manager = None
         self.estimator = None
+        self.app_state = None
 
-    def attach_traffic_controllers(self, engine, safety, estimator):
-        """Attaches the authoritative FSM, SafetyManager, and state estimator."""
+    def attach_traffic_controllers(self, engine, safety, estimator, app_state=None):
+        """Attaches the authoritative FSM, SafetyManager, state estimator, and AppState."""
         self.fsm_engine = engine
         self.safety_manager = safety
         self.estimator = estimator
+        self.app_state = app_state
 
     def start_simulation(self, gui: bool = False, speed_factor: float = 1.0, cfg_path: Optional[str] = None) -> bool:
         """Starts SUMO and begins the autonomous stepping and closed-loop control thread."""
@@ -126,11 +128,46 @@ class SUMOManager:
         time.sleep(0.3)
         return self.start_simulation(gui=gui, speed_factor=speed)
 
+    def spawn_ambulance(self, approach: str) -> bool:
+        """
+        Dynamically spawns an emergency ambulance vehicle in SUMO on the designated incoming approach.
+        Enables testing immediate green preemption in real-time.
+        """
+        approach = approach.lower()
+        route_map = {
+            "north": "r_north_to_south",
+            "south": "r_south_to_north",
+            "east":  "r_east_to_west",
+            "west":  "r_west_to_east"
+        }
+        route_id = route_map.get(approach)
+        if not route_id:
+            return False
+
+        if not self.conn.is_connected():
+            return False
+
+        try:
+            import traci
+            traci.switch(self.conn._traci_label)
+            veh_id = f"ambulance_{approach}_{int(time.time() * 1000) % 100000}"
+            traci.vehicle.add(
+                veh_id,
+                route_id,
+                typeID="emergency_ambulance",
+                depart="now",
+                departLane="best",
+                departSpeed="max"
+            )
+            return True
+        except Exception as e:
+            return False
+
     def _run_loop(self):
         """
         Closed-loop execution thread:
         1. Advances SUMO step.
-        2. Measures approach states from SUMO.
+        2. Measures approach states from SUMO (including emergency ambulances).
         3. Updates estimator so DecisionEngine FSM receives live SUMO measurements.
         4. Transmits authoritative FSM signal states from SafetyManager back into SUMO TraCI.
         """
@@ -150,6 +187,10 @@ class SUMOManager:
                 approach_states = self.perception_adapter.step_and_measure()
 
                 # 2. Feed measurements into TrafficStateEstimator
+                detected_amb = False
+                amb_approach = None
+                manual_amb = getattr(self.app_state, "active_ambulance", None) if self.app_state else None
+
                 if self.estimator:
                     for app_name, st in approach_states.items():
                         if app_name in self.estimator._states:
@@ -158,7 +199,18 @@ class SUMOManager:
                             existing.queue_estimate = st.queue_estimate
                             existing.waiting_time = st.waiting_time
                             existing.breakdown = st.breakdown
-                            existing.has_ambulance = st.has_ambulance
+                            has_amb = st.has_ambulance or (manual_amb == app_name)
+                            existing.has_ambulance = has_amb
+                            if has_amb:
+                                detected_amb = True
+                                amb_approach = app_name
+
+                # Synchronize detected ambulance into AppState if not already set
+                if self.app_state:
+                    if detected_amb and not self.app_state.active_ambulance:
+                        self.app_state.active_ambulance = amb_approach
+                    elif not detected_amb and self.app_state.active_ambulance and not manual_amb:
+                        self.app_state.active_ambulance = None
 
                 # 3. Synchronize authoritative SafetyManager states to SUMO
                 if self.safety_manager:
