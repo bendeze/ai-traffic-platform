@@ -5,8 +5,15 @@
 
 import { SerialPortsResponse, EnvironmentType, OperatingMode, VisionMode, ApproachName } from '../types';
 
-export const API_BASE = 'http://localhost:8000';
-export const WS_URL = 'ws://localhost:8000/ws';
+const getHost = () => {
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+    return window.location.hostname;
+  }
+  return '127.0.0.1';
+};
+
+export const API_BASE = `http://${getHost()}:8000`;
+export const WS_URL = `ws://${getHost()}:8000/ws`;
 
 export const apiClient = {
   // Controller Endpoints

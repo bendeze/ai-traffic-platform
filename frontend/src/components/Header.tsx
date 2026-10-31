@@ -81,7 +81,7 @@ export default function Header({
           <input
             type="file"
             accept="video/*"
-            onChange={(e) => { switchEnvironment('video'); handleFileUpload(e); }}
+            onChange={handleFileUpload}
             className="hidden"
           />
         </label>

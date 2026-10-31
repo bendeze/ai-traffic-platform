@@ -16,3 +16,4 @@ class ITrafficPerceptionAdapter(ABC):
     def get_metrics(self) -> Dict[str, Any]:
         """Returns structured metrics for all intersection approaches."""
         pass
+

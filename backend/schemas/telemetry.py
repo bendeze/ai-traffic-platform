@@ -48,3 +48,4 @@ class TelemetryPayload(BaseModel):
     pipeline: Dict[str, object] = Field(default_factory=dict)
     hardware: Dict[str, object] = Field(default_factory=dict)
     timestamp: float
+

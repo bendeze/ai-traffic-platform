@@ -39,3 +39,4 @@ async def clear_ambulance(state: AppState = Depends(get_app_state)):
     state.active_ambulance = None
     state.vision.active_ambulance_approach = None
     return {"status": "ok", "ambulance_cleared": True}
+

@@ -77,3 +77,4 @@ async def run_benchmark(duration: float = 30.0, seed: int = 42):
         raise HTTPException(400, "Benchmark duration must be between 10s and 300s")
     report = benchmark_runner.run_comparative_study(duration=duration, seed=seed)
     return {"status": "ok", "report": report}
+

@@ -13,6 +13,9 @@ router = APIRouter(tags=["Video & Perception"])
 
 @router.post("/video/source")
 async def set_source(source: str, state: AppState = Depends(get_app_state)):
+    state.active_environment = "video"
+    if state.sumo_mgr.is_running:
+        state.sumo_mgr.stop_simulation()
     state.video_source = source
     state.processing = True
     return {"status": "ok", "source": source}
@@ -24,6 +27,9 @@ async def upload_video(file: UploadFile = File(...), state: AppState = Depends(g
     file_path = os.path.join(upload_dir, file.filename)
     with open(file_path, "wb") as f:
         f.write(await file.read())
+    state.active_environment = "video"
+    if state.sumo_mgr.is_running:
+        state.sumo_mgr.stop_simulation()
     state.video_source = file_path
     state.processing = True
     print(f"[Upload] Saved and active: {file_path}")
@@ -32,6 +38,7 @@ async def upload_video(file: UploadFile = File(...), state: AppState = Depends(g
 @router.post("/video/stop")
 async def stop_video(state: AppState = Depends(get_app_state)):
     state.processing = False
+    state.video_source = None
     state.active_source = None
     return {"status": "stopped"}
 
@@ -70,3 +77,4 @@ async def set_snapshot_interval(seconds: float, state: AppState = Depends(get_ap
     state.settings.snapshot_interval = float(seconds)
     save_settings(state.settings)
     return {"status": "ok", "snapshot_interval": state.settings.snapshot_interval}
+

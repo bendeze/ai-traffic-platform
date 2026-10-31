@@ -15,3 +15,4 @@ async def websocket_endpoint(ws: WebSocket, state: AppState = Depends(get_app_st
     except WebSocketDisconnect:
         if ws in state.ws_clients:
             state.ws_clients.remove(ws)
+

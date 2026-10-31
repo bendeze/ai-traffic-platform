@@ -76,3 +76,4 @@ async def stop_manual_loop(state: AppState = Depends(get_app_state)):
 async def set_manual_config(body: ManualConfigRequest, state: AppState = Depends(get_app_state)):
     state.engine.set_manual_durations(body.phase_a, body.phase_b)
     return {"status": "ok", "manual_durations": state.engine.manual_durations}
+

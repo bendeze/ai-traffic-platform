@@ -1,3 +1,4 @@
+import time
 import asyncio
 from core.app_state import AppState
 
@@ -9,6 +10,9 @@ async def run_decision_loop(state: AppState):
     """
     while True:
         await asyncio.sleep(0.5)
+        now = time.time()
+        state.safety.update(now)
+
         if not state.processing and not state.sumo_mgr.is_running:
             continue
 
@@ -23,3 +27,4 @@ async def run_decision_loop(state: AppState):
 
         if state.serial_mgr.is_connected():
             state.serial_mgr.send_signals(approach_states, state.safety.current_phase, int(state.safety.remaining_green))
+

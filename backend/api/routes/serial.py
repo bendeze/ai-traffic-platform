@@ -32,3 +32,4 @@ async def serial_test(state: AppState = Depends(get_app_state)):
     if not ok:
         raise HTTPException(400, "Arduino not connected or write failed")
     return {"status": "ok", "message": "Diagnostic test sweep triggered on Arduino"}
+

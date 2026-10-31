@@ -25,3 +25,4 @@ async def update_approaches(body: UpdateApproachesRequest, state: AppState = Dep
     state.vision.settings.approaches = state.settings.approaches
     save_settings(state.settings)
     return {"status": "ok", "saved": len(state.settings.approaches)}
+

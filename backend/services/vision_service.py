@@ -91,3 +91,4 @@ async def run_vision_processing_loop(state: AppState):
                 state.estimator.update(detections, manual_ambulance=state.active_ambulance)
 
         await asyncio.sleep(0.033)
+

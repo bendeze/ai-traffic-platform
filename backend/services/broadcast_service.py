@@ -25,3 +25,4 @@ async def run_broadcast_loop(state: AppState):
         for ws in dead:
             if ws in state.ws_clients:
                 state.ws_clients.remove(ws)
+

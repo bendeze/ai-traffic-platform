@@ -31,6 +31,7 @@ export default function App() {
   // Controller & Vision Modes
   const [mode, setMode] = useState<OperatingMode>('adaptive');
   const [visionMode, setVisionMode] = useState<VisionMode>('tracking');
+  const [activeEnvironment, setActiveEnvironment] = useState<EnvironmentType>('sumo');
   const [manualA, setManualA] = useState<number>(30);
   const [manualB, setManualB] = useState<number>(30);
   const [activePedestrian, setActivePedestrian] = useState<string | null>(null);
@@ -51,6 +52,9 @@ export default function App() {
     }
     if (data?.signal?.mode && !mode) {
       setMode(data.signal.mode);
+    }
+    if (data?.active_environment) {
+      setActiveEnvironment(data.active_environment);
     }
   }, [data, mode]);
 
@@ -78,7 +82,6 @@ export default function App() {
 
   // Derived state values
   const isLoopRunning = Boolean(data?.signal?.manual_loop_running);
-  const activeEnvironment = data?.active_environment || 'sumo';
   const isSumoMode = activeEnvironment === 'sumo';
   const sumoData = data?.simulation || {};
   const isSumoRunning = Boolean(sumoData?.is_running);
@@ -175,6 +178,7 @@ export default function App() {
   };
 
   const setSource = async (source: string) => {
+    setActiveEnvironment('video');
     try {
       await apiClient.setSource(source);
       setLog(`FEED INPUT: ${source.toUpperCase()}`);
@@ -195,12 +199,15 @@ export default function App() {
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setActiveEnvironment('video');
     setLog(`UPLOADING ${file.name.toUpperCase()}...`);
     try {
       await apiClient.uploadVideo(file);
       setLog(`PLAYBACK STARTED: ${file.name.toUpperCase()}`);
     } catch {
       setLog('UPLOAD FAILED');
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -255,6 +262,7 @@ export default function App() {
   };
 
   const switchEnvironment = async (env: EnvironmentType) => {
+    setActiveEnvironment(env);
     try {
       await apiClient.switchEnvironment(env);
       setLog(`ENVIRONMENT SWITCHED: ${env.toUpperCase()}`);
