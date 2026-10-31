@@ -1,0 +1,134 @@
+/**
+ * Group Z API Client
+ * Centralized, typed HTTP client for backend endpoints.
+ */
+
+export const API_BASE = 'http://localhost:8000';
+export const WS_URL = 'ws://localhost:8000/ws';
+
+export const apiClient = {
+  // Controller Endpoints
+  async switchMode(newMode) {
+    const res = await fetch(`${API_BASE}/controller/mode/${newMode}`, { method: 'POST' });
+    return res.json();
+  },
+
+  async startManualLoop(phaseA, phaseB, startPhase = 'A') {
+    const res = await fetch(`${API_BASE}/controller/manual_loop/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phase_a: phaseA, phase_b: phaseB, start_phase: startPhase }),
+    });
+    return res.json();
+  },
+
+  async stopManualLoop() {
+    const res = await fetch(`${API_BASE}/controller/manual_loop/stop`, { method: 'POST' });
+    return res.json();
+  },
+
+  async updateManualConfig(phaseA, phaseB) {
+    const res = await fetch(`${API_BASE}/controller/manual_config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phase_a: phaseA, phase_b: phaseB }),
+    });
+    return res.json();
+  },
+
+  // Priority Endpoints
+  async requestPedestrian(approach) {
+    const res = await fetch(`${API_BASE}/priority/pedestrian/${approach}`, { method: 'POST' });
+    return res.json();
+  },
+
+  async triggerAmbulance(approach) {
+    const res = await fetch(`${API_BASE}/priority/ambulance/${approach}`, { method: 'POST' });
+    return res.json();
+  },
+
+  async clearAmbulance() {
+    const res = await fetch(`${API_BASE}/priority/ambulance_clear`, { method: 'POST' });
+    return res.json();
+  },
+
+  // Vision Endpoints
+  async switchVisionMode(newMode) {
+    const res = await fetch(`${API_BASE}/vision/mode/${newMode}`, { method: 'POST' });
+    return res.json();
+  },
+
+  async setSource(source) {
+    const res = await fetch(`${API_BASE}/video/source?source=${encodeURIComponent(source)}`, { method: 'POST' });
+    return res.json();
+  },
+
+  async stopFeed() {
+    const res = await fetch(`${API_BASE}/video/stop`, { method: 'POST' });
+    return res.json();
+  },
+
+  async uploadVideo(file) {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API_BASE}/video/upload`, { method: 'POST', body: form });
+    return res.json();
+  },
+
+  // Hardware Serial Endpoints
+  async fetchSerialPorts() {
+    const res = await fetch(`${API_BASE}/serial/ports`);
+    return res.json();
+  },
+
+  async connectArduino(port) {
+    const res = await fetch(`${API_BASE}/serial/connect?port=${encodeURIComponent(port)}`, { method: 'POST' });
+    return res.json();
+  },
+
+  async disconnectArduino() {
+    const res = await fetch(`${API_BASE}/serial/disconnect`, { method: 'POST' });
+    return res.json();
+  },
+
+  async testArduinoLeds() {
+    const res = await fetch(`${API_BASE}/serial/test`, { method: 'POST' });
+    return res.json();
+  },
+
+  // SUMO Simulation Endpoints
+  async switchEnvironment(env) {
+    const res = await fetch(`${API_BASE}/simulation/environment/${env}`, { method: 'POST' });
+    return res.json();
+  },
+
+  async startSumo(gui = false, speed = 1.0) {
+    const res = await fetch(`${API_BASE}/simulation/sumo/start?gui=${gui}&speed=${speed}`, { method: 'POST' });
+    return res.json();
+  },
+
+  async stopSumo() {
+    const res = await fetch(`${API_BASE}/simulation/sumo/stop`, { method: 'POST' });
+    return res.json();
+  },
+
+  async pauseSumo() {
+    const res = await fetch(`${API_BASE}/simulation/sumo/pause`, { method: 'POST' });
+    return res.json();
+  },
+
+  async resumeSumo() {
+    const res = await fetch(`${API_BASE}/simulation/sumo/resume`, { method: 'POST' });
+    return res.json();
+  },
+
+  async resetSumo() {
+    const res = await fetch(`${API_BASE}/simulation/sumo/reset`, { method: 'POST' });
+    return res.json();
+  },
+
+  async updateSumoSpeed(factor) {
+    const res = await fetch(`${API_BASE}/simulation/sumo/speed/${factor}`, { method: 'POST' });
+    return res.json();
+  },
+};
