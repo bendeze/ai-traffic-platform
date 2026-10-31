@@ -12,7 +12,7 @@ export default function Footer({ log, isSnapshotMode, snapshotInterval }: Footer
       {/* Lower Row: Copyright & Academic Project Attribution */}
       <div className="pt-2 flex justify-between items-center flex-wrap gap-2 text-[0.7rem] font-mono text-zinc-400 dark:text-zinc-500">
         <div>
-          Copyright © Group 5 · CMU - Bridge Program Project
+          © {new Date().getFullYear()} Group 5 · CMU – Bridge Program Project
         </div>
         <div>
           Intelligent Traffic Management Platform

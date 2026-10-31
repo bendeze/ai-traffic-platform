@@ -68,7 +68,7 @@ export default function ApproachTelemetryGrid({
                 
                 {/* Detailed vehicle counts */}
                 <div className="font-mono text-[0.65rem] text-zinc-500 dark:text-zinc-400 mt-1 leading-tight">
-                  CARS:{bd.car || 0} · AMBULANCE:{bd.ambulance || 0} · BIKES:{bd.motorcycle || 0} · BUS:{bd.bus || 0}
+                  CARS:{bd.car || 0} · AMB:{bd.ambulance || 0} · BIKES:{bd.motorcycle || 0} · BUS:{bd.bus || 0}
                 </div>
 
                 <div className="flex justify-between items-center font-mono text-[0.65rem] text-zinc-400 mt-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-900">
