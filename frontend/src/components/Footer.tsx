@@ -8,15 +8,16 @@ interface FooterProps {
 
 export default function Footer({ log, isSnapshotMode, snapshotInterval }: FooterProps) {
   return (
-    <footer className="mt-5 pt-3.5 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center flex-wrap gap-2">
-      <div className="flex items-center gap-2.5">
-        <span className="font-mono text-xs text-zinc-400">STATUS:</span>
-        <span className="font-mono text-xs text-zinc-600 dark:text-zinc-300 font-semibold">{log}</span>
-      </div>
-      <div className="font-mono text-xs text-zinc-400">
-        SAMPLING: {isSnapshotMode ? `PHOTO (${snapshotInterval}s)` : 'CONTINUOUS'} · MAX WAIT: 30s · ALL-YELLOW: 3s
+    <footer className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col gap-2.5">
+      {/* Lower Row: Copyright & Academic Project Attribution */}
+      <div className="pt-2 flex justify-between items-center flex-wrap gap-2 text-[0.7rem] font-mono text-zinc-400 dark:text-zinc-500">
+        <div>
+          Copyright © Group 5 · CMU - Bridge Program Project
+        </div>
+        <div>
+          Intelligent Traffic Management Platform
+        </div>
       </div>
     </footer>
   );
 }
-
