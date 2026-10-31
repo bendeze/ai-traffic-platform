@@ -1,6 +1,13 @@
 import React, { ChangeEvent } from 'react';
-import { useTheme } from '../context/ThemeContext';
 import { SerialPortInfo, EnvironmentType } from '../types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
   isSumoMode: boolean;
@@ -43,26 +50,21 @@ export default function Header({
   connectArduino,
   fetchSerialPorts,
 }: HeaderProps) {
-  const { isLight, toggleTheme } = useTheme();
-
   return (
-    <header className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-5 mb-5 flex-wrap gap-4">
+    <header className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-4 mb-4 flex-wrap gap-3">
       {/* Brand & Platform Identity */}
-      <div className="flex items-center gap-4">
-        <span className="text-base font-extrabold tracking-widest border border-zinc-900 dark:border-white text-zinc-900 dark:text-white px-2 py-0.5">
-          GROUP Z
-        </span>
-        <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400 tracking-wider hidden sm:inline">
+      <div className="flex items-center">
+        <span className="font-mono text-[0.68rem] text-zinc-500 dark:text-zinc-400 tracking-wider hidden sm:inline">
           AI TRAFFIC MANAGEMENT PLATFORM
         </span>
       </div>
 
       {/* Operating Environment & Hardware Controls */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-1.5 flex-wrap">
         {/* SUMO Simulation Environment Toggle */}
         <button
           onClick={() => { switchEnvironment('sumo'); if (!isSumoRunning) startSumo(); }}
-          className={isSumoMode ? 'btn-minimal-active' : 'btn-minimal'}
+          className={`${isSumoMode ? 'btn-minimal-active' : 'btn-minimal'} !text-[0.68rem] !py-1 !px-2.5`}
         >
           SUMO SIMULATION
         </button>
@@ -70,13 +72,13 @@ export default function Header({
         {/* Physical Camera Feed */}
         <button
           onClick={() => { switchEnvironment('video'); setSource('webcam'); }}
-          className={!isSumoMode ? 'btn-minimal-active' : 'btn-minimal'}
+          className={`${!isSumoMode ? 'btn-minimal-active' : 'btn-minimal'} !text-[0.68rem] !py-1 !px-2.5`}
         >
           CAMERA
         </button>
 
         {/* Upload Custom Video Footage */}
-        <label className="btn-minimal cursor-pointer inline-flex items-center">
+        <label className="btn-minimal !text-[0.68rem] !py-1 !px-2.5 cursor-pointer inline-flex items-center">
           UPLOAD
           <input
             type="file"
@@ -88,82 +90,90 @@ export default function Header({
 
         {!isSumoMode && (
           <>
-            <button onClick={stopFeed} className="btn-minimal">
+            <button onClick={stopFeed} className="btn-minimal !text-[0.68rem] !py-1 !px-2.5">
               HALT
             </button>
-            <button onClick={() => setShowCalibrate(true)} className="btn-minimal border-zinc-500">
+            <button onClick={() => setShowCalibrate(true)} className="btn-minimal !text-[0.68rem] !py-1 !px-2.5 border-zinc-500">
               CALIBRATE REGIONS
             </button>
           </>
         )}
 
         {/* WebSocket Connection Status */}
-        <div className="flex items-center gap-2 ml-3.5 pl-3.5 border-l border-zinc-200 dark:border-zinc-800">
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            wsConnected 
-              ? 'bg-emerald-600 dark:bg-white shadow-[0_0_8px_#16a34a] dark:shadow-[0_0_8px_#ffffff]' 
-              : 'bg-zinc-400 dark:bg-zinc-600'
-          }`} />
-          <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
+        <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              wsConnected ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' : 'bg-zinc-400 dark:bg-zinc-600'
+            }`}
+          />
+          <span className="font-mono text-[0.68rem] text-zinc-500 dark:text-zinc-400 tracking-wider">
             {wsConnected ? 'LIVE' : 'OFFLINE'}
           </span>
         </div>
 
         {/* Arduino Serial Hardware Controls */}
-        <div className="flex items-center gap-2 ml-3.5 pl-3.5 border-l border-zinc-200 dark:border-zinc-800">
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            isArduinoConnected ? 'bg-emerald-500 shadow-[0_0_8px_#22c55e]' : 'bg-zinc-400 dark:bg-zinc-600'
-          }`} />
-
+        <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">
           <button
             onClick={testArduinoLeds}
             title="Test all 12 physical LEDs on breadboard (Pins 2 to 13)"
-            className="btn-minimal font-bold border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
+            className="btn-minimal !text-[0.68rem] !py-1 !px-2.5 font-bold border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
           >
             TEST LEDS
           </button>
           
           {isArduinoConnected ? (
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-[0.68rem] font-bold text-emerald-700 dark:text-emerald-400">
                 {arduinoPort} CONNECTED
               </span>
               <button
                 onClick={disconnectArduino}
-                className="btn-minimal !px-2 !py-0.5 border-red-500 text-red-500 hover:border-red-400"
+                className="btn-minimal !text-[0.65rem] !px-2 !py-0.5 border-red-500 text-red-500 hover:border-red-400"
               >
                 DISCONNECT
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
-              <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="font-mono text-[0.68rem] text-zinc-500 dark:text-zinc-400">
                 ARDUINO:
               </span>
-              <select
-                value={selectedPort}
-                onChange={(e) => setSelectedPort(e.target.value)}
-                className="bg-white dark:bg-black text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 text-xs font-mono px-1.5 py-1 outline-none cursor-pointer focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white"
-              >
-                {serialPorts.length > 0 ? (
-                  serialPorts.map((p) => (
-                    <option key={p.port} value={p.port}>
-                      {p.port} {p.is_arduino ? '★ (Nano 33 BLE)' : p.is_usb ? '(USB)' : ''}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="COM6">COM6 (Nano 33 BLE)</option>
-                    <option value="COM3">COM3</option>
-                    <option value="COM4">COM4</option>
-                    <option value="COM5">COM5</option>
-                  </>
-                )}
-              </select>
+              
+              <div className="w-[160px]">
+                <Select value={selectedPort} onValueChange={setSelectedPort}>
+                  <SelectTrigger className="h-7 text-[0.68rem] font-mono px-2 py-0.5">
+                    <SelectValue placeholder="Select Port" />
+                  </SelectTrigger>
+                  <SelectContent className="font-mono text-xs">
+                    {serialPorts.length > 0 ? (
+                      serialPorts.map((p) => (
+                        <SelectItem key={p.port} value={p.port} className="text-[0.68rem] font-mono">
+                          {p.port} {p.is_arduino ? '★ (Nano 33 BLE)' : p.is_usb ? '(USB)' : ''}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="COM6" className="text-[0.68rem] font-mono">
+                          COM6 (Nano 33 BLE)
+                        </SelectItem>
+                        <SelectItem value="COM3" className="text-[0.68rem] font-mono">
+                          COM3
+                        </SelectItem>
+                        <SelectItem value="COM4" className="text-[0.68rem] font-mono">
+                          COM4
+                        </SelectItem>
+                        <SelectItem value="COM5" className="text-[0.68rem] font-mono">
+                          COM5
+                        </SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <button
                 onClick={() => connectArduino(selectedPort)}
-                className="btn-minimal border-emerald-500 text-emerald-700 dark:text-emerald-400 font-bold"
+                className="btn-minimal !text-[0.68rem] !py-1 !px-2.5 border-emerald-500 text-emerald-700 dark:text-emerald-400 font-bold"
               >
                 CONNECT
               </button>
@@ -171,7 +181,7 @@ export default function Header({
               <button
                 onClick={fetchSerialPorts}
                 title="Scan for connected serial ports"
-                className="btn-minimal px-2"
+                className="btn-minimal !text-[0.68rem] !py-1 !px-2"
               >
                 ↻
               </button>
@@ -180,17 +190,10 @@ export default function Header({
         </div>
 
         {/* Theme Toggle Button */}
-        <div className="flex items-center ml-3.5 pl-3.5 border-l border-zinc-200 dark:border-zinc-800">
-          <button
-            onClick={toggleTheme}
-            title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
-            className="btn-minimal-active flex items-center gap-1.5 !px-3"
-          >
-            <span>{isLight ? '☾ DARK' : '☀ LIGHT'}</span>
-          </button>
+        <div className="flex items-center ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">
+          <ThemeToggle />
         </div>
       </div>
     </header>
   );
 }
-

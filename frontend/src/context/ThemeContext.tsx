@@ -5,6 +5,7 @@ interface ThemeContextType {
   theme: 'dark' | 'light';
   isLight: boolean;
   toggleTheme: () => void;
+  setTheme: (theme: 'dark' | 'light') => void;
   t: ThemeTokens;
 }
 
@@ -37,6 +38,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     theme,
     isLight,
     toggleTheme,
+    setTheme,
     t,
   };
 
