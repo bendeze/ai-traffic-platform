@@ -189,7 +189,6 @@ class SUMOManager:
                 # 2. Feed measurements into TrafficStateEstimator
                 detected_amb = False
                 amb_approach = None
-                manual_amb = getattr(self.app_state, "active_ambulance", None) if self.app_state else None
 
                 if self.estimator:
                     for app_name, st in approach_states.items():
@@ -199,17 +198,18 @@ class SUMOManager:
                             existing.queue_estimate = st.queue_estimate
                             existing.waiting_time = st.waiting_time
                             existing.breakdown = st.breakdown
-                            has_amb = st.has_ambulance or (manual_amb == app_name)
-                            existing.has_ambulance = has_amb
-                            if has_amb:
+                            existing.has_ambulance = st.has_ambulance
+                            if st.has_ambulance:
                                 detected_amb = True
                                 amb_approach = app_name
 
-                # Synchronize detected ambulance into AppState if not already set
+                # Synchronize detected ambulance into AppState:
+                # Active only while the ambulance vehicle is physically detected on the road.
+                # As soon as it passes the intersection, it clears immediately.
                 if self.app_state:
-                    if detected_amb and not self.app_state.active_ambulance:
+                    if detected_amb:
                         self.app_state.active_ambulance = amb_approach
-                    elif not detected_amb and self.app_state.active_ambulance and not manual_amb:
+                    else:
                         self.app_state.active_ambulance = None
 
                 # 3. Synchronize authoritative SafetyManager states to SUMO

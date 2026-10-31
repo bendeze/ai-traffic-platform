@@ -14,6 +14,7 @@ export interface VehicleBreakdown {
   bus?: number;
   truck?: number;
   motorcycle?: number;
+  ambulance?: number;
 }
 
 export interface ApproachData {

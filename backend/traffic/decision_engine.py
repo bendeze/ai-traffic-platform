@@ -76,6 +76,7 @@ class DecisionEngine:
                 break
 
         if ambulance_phase:
+            self._was_ambulance_preempting = True
             if ambulance_phase != self._last_phase:
                 self.last_reason = f"emergency_ambulance_preemption_{ambulance_phase}"
                 return {
@@ -92,6 +93,12 @@ class DecisionEngine:
                     "yellow_dur": t.yellow_dur,
                     "reason": self.last_reason
                 }
+        else:
+            if getattr(self, "_was_ambulance_preempting", False):
+                self._was_ambulance_preempting = False
+                self.last_ambulance_approach = None
+                if self.safety_ref:
+                    self.safety_ref.end_emergency_hold()
 
         # ── 2. PEDESTRIAN 10s RED OVERRIDE ───────────────────────────────────
         # When a pedestrian request is queued, immediately trigger the 10-second RED lock!

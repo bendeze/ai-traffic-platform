@@ -151,6 +151,11 @@ class SafetyManager:
         elif proposal.get("manual") or proposal.get("force_duration"):
             self.remaining_green    = dur
 
+    def end_emergency_hold(self):
+        """Immediately ends emergency green hold once the vehicle has cleared the road."""
+        if self.signal_state == SignalState.GREEN and self.remaining_green > float(self.settings.timing.min_green):
+            self.remaining_green = float(self.settings.timing.min_green)
+
     # ─────────────────────────────────────────────────────────────────────────
     def request_phase(self, phase: str, duration: Optional[int] = None, manual: bool = False, yellow_dur: Optional[float] = None):
         """Direct phase request with custom green duration."""

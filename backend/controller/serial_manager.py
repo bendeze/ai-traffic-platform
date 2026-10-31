@@ -1,4 +1,7 @@
-import json, time, threading
+import json
+import time
+import queue
+import threading
 from typing import Optional, Dict, List
 import serial
 import serial.tools.list_ports
@@ -10,7 +13,7 @@ class SerialManager:
     - Auto-detecting Arduino/USB-serial devices across COM ports
     - Frame-accurate signal state synchronization (pins 2 to 13)
     - Diagnostic LED hardware test sweep
-    - Thread-safe non-blocking command dispatch
+    - Thread-safe non-blocking command dispatch via background queue worker
     """
 
     def __init__(self, settings):
@@ -21,8 +24,25 @@ class SerialManager:
         self.connected_port: Optional[str] = None
         self.last_error: Optional[str] = None
 
+        self._write_queue: queue.Queue = queue.Queue(maxsize=10)
+        self._worker_thread = threading.Thread(target=self._write_loop, daemon=True, name="Serial_Writer_Worker")
+        self._worker_thread.start()
+
         if settings.serial_enabled:
             self.connect(self.settings.serial_port)
+
+    def _write_loop(self):
+        """Dedicated background serial writer thread. Never blocks the main asyncio event loop."""
+        while True:
+            cmd = self._write_queue.get()
+            with self._lock:
+                if self._serial and self._serial.is_open:
+                    try:
+                        self._serial.write(cmd.encode("ascii"))
+                        self._serial.flush()
+                    except Exception as ex:
+                        self.last_error = str(ex)
+            self._write_queue.task_done()
 
     @staticmethod
     def list_available_ports() -> List[dict]:
@@ -82,7 +102,7 @@ class SerialManager:
                     timeout=0.5,
                     write_timeout=0.5
                 )
-                time.sleep(1.8) # Wait for Arduino bootloader reset
+                time.sleep(1.8)  # Wait for Arduino bootloader reset
                 self.connected_port = target_port
                 self.settings.serial_port = target_port
                 self.settings.serial_enabled = True
@@ -111,14 +131,14 @@ class SerialManager:
 
     def send_signals(self, approach_states: Dict[str, str], phase: str = "A", duration: int = 15):
         """
-        Sends frame-accurate signal states to Arduino to update physical LEDs:
+        Non-blocking dispatch of frame-accurate signal states to Arduino to update physical LEDs:
         Example: {"seq":12,"phase":"A","dur":15,"n":"G","s":"G","e":"R","w":"R"}
         """
         if not self.is_connected():
             return
 
         self._seq += 1
-        
+
         # Color mapper: green -> 'G', yellow -> 'Y', red/clearance -> 'R'
         def c2char(c: str) -> str:
             c = str(c).lower()
@@ -141,13 +161,15 @@ class SerialManager:
             "w": w
         }) + "\n"
 
-        with self._lock:
-            try:
-                self._serial.write(cmd.encode("ascii"))
-                self._serial.flush()
-            except Exception as ex:
-                print(f"[Serial] Write error: {ex}")
-                self.last_error = str(ex)
+        try:
+            if self._write_queue.full():
+                try:
+                    self._write_queue.get_nowait()
+                except queue.Empty:
+                    pass
+            self._write_queue.put_nowait(cmd)
+        except Exception:
+            pass
 
     def send_command(self, phase: str, duration: int):
         """Legacy phase command dispatcher."""
@@ -159,27 +181,27 @@ class SerialManager:
             "phase": phase,
             "duration": int(duration)
         }) + "\n"
-        with self._lock:
-            try:
-                self._serial.write(cmd.encode("ascii"))
-                self._serial.flush()
-            except Exception as ex:
-                print(f"[Serial] Write error: {ex}")
-                self.last_error = str(ex)
 
-    def send_test_pattern(self):
+        try:
+            if self._write_queue.full():
+                try:
+                    self._write_queue.get_nowait()
+                except queue.Empty:
+                    pass
+            self._write_queue.put_nowait(cmd)
+        except Exception:
+            pass
+
+    def send_test_pattern(self) -> bool:
         """Triggers the Arduino sequential 12-LED diagnostic test sweep."""
         if not self.is_connected():
             return False
         cmd = json.dumps({"cmd": "test"}) + "\n"
-        with self._lock:
-            try:
-                self._serial.write(cmd.encode("ascii"))
-                self._serial.flush()
-                return True
-            except Exception as ex:
-                self.last_error = str(ex)
-                return False
+        try:
+            self._write_queue.put_nowait(cmd)
+            return True
+        except Exception:
+            return False
 
     def status(self) -> dict:
         return {

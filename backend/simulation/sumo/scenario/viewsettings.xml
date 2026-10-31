@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<viewsettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/viewsettings_file.xsd">
+    <scheme name="real world"/>
+    <viewport zoom="450" centerX="0" centerY="0"/>
+</viewsettings>

@@ -102,7 +102,7 @@ export default function SumoTelemetryGrid({
 
               {/* Classification Breakdown */}
               <div className="font-mono text-[0.65rem] text-zinc-400 mt-1 border-t border-zinc-100 dark:border-zinc-900 pt-1">
-                Cars: {bd.car ?? 0} | Buses: {bd.bus ?? 0} | Trucks: {bd.truck ?? 0} | Moto: {bd.motorcycle ?? 0}
+                Cars: {bd.car ?? 0} | Amb: {bd.ambulance ?? 0} | Moto: {bd.motorcycle ?? 0} | Buses: {bd.bus ?? 0}
               </div>
             </div>
           );
