@@ -1,5 +1,22 @@
 import React from 'react';
 import ManualLoopPanel from './ManualLoopPanel';
+import { SignalPhase, SignalColor, OperatingMode } from '../types';
+
+interface PhaseStatusBoxProps {
+  currentPhase: SignalPhase;
+  signalState: SignalColor;
+  remaining: number;
+  reason: string;
+  mode: OperatingMode;
+  switchMode: (mode: OperatingMode) => void;
+  isLoopRunning: boolean;
+  manualA: number;
+  setManualA: (val: number) => void;
+  manualB: number;
+  setManualB: (val: number) => void;
+  startManualLoop: () => void;
+  stopManualLoop: () => void;
+}
 
 export default function PhaseStatusBox({
   currentPhase,
@@ -15,7 +32,7 @@ export default function PhaseStatusBox({
   setManualB,
   startManualLoop,
   stopManualLoop,
-}) {
+}: PhaseStatusBoxProps) {
   return (
     <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6">
       <div className="flex justify-between items-start mb-5">
@@ -67,7 +84,7 @@ export default function PhaseStatusBox({
       <div className="grid grid-cols-2 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800">
         <button
           onClick={() => switchMode('adaptive')}
-          className={`py-2.5 font-mono text-xs font-bold tracking-wider cursor-pointer transition-colors ${
+          className={`py-2.5 font-mono text-xs font-bold tracking-wider cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
             mode === 'adaptive'
               ? 'bg-zinc-900 text-white dark:bg-white dark:text-black'
               : 'bg-white text-zinc-500 hover:text-zinc-900 dark:bg-black dark:text-zinc-400 dark:hover:text-white'
@@ -77,7 +94,7 @@ export default function PhaseStatusBox({
         </button>
         <button
           onClick={() => switchMode('manual')}
-          className={`py-2.5 font-mono text-xs font-bold tracking-wider cursor-pointer transition-colors ${
+          className={`py-2.5 font-mono text-xs font-bold tracking-wider cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
             mode === 'manual'
               ? 'bg-zinc-900 text-white dark:bg-white dark:text-black'
               : 'bg-white text-zinc-500 hover:text-zinc-900 dark:bg-black dark:text-zinc-400 dark:hover:text-white'

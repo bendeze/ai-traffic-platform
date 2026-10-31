@@ -1,4 +1,29 @@
 import React from 'react';
+import { VisionMode } from '../types';
+
+interface SimulationBarProps {
+  isSumoMode: boolean;
+  isSnapshotMode: boolean;
+  switchVisionMode: (mode: VisionMode) => void;
+  snapshotInterval: number;
+  nextSnapIn: number;
+  snapCount: number;
+  fps: string;
+  isSumoRunning: boolean;
+  isSumoPaused: boolean;
+  sumoGui: boolean;
+  setSumoGui: (gui: boolean) => void;
+  sumoSpeed: number;
+  sumoTime: number;
+  sumoVehicleCount: number;
+  startSumo: (gui?: boolean) => void;
+  stopSumo: () => void;
+  pauseSumo: () => void;
+  resumeSumo: () => void;
+  resetSumo: () => void;
+  updateSumoSpeed: (spd: number) => void;
+  setLog: (msg: string) => void;
+}
 
 export default function SimulationBar({
   isSumoMode,
@@ -22,7 +47,7 @@ export default function SimulationBar({
   resetSumo,
   updateSumoSpeed,
   setLog
-}) {
+}: SimulationBarProps) {
   if (!isSumoMode) {
     return (
       <div className="flex justify-between items-center bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-3.5 py-2 mb-5">
@@ -33,7 +58,7 @@ export default function SimulationBar({
           <div className="inline-flex bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 p-0.5">
             <button
               onClick={() => switchVisionMode('tracking')}
-              className={`font-mono text-xs font-bold tracking-wider px-4 py-1.5 cursor-pointer transition-colors ${
+              className={`font-mono text-xs font-bold tracking-wider px-4 py-1.5 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
                 !isSnapshotMode
                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-black'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -43,7 +68,7 @@ export default function SimulationBar({
             </button>
             <button
               onClick={() => switchVisionMode('snapshot')}
-              className={`font-mono text-xs font-bold tracking-wider px-4 py-1.5 cursor-pointer transition-colors ${
+              className={`font-mono text-xs font-bold tracking-wider px-4 py-1.5 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
                 isSnapshotMode
                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-black'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -135,7 +160,8 @@ export default function SimulationBar({
             setSumoGui(nextGui);
             setLog(`SUMO GUI PREFERENCE: ${nextGui ? 'ENABLED' : 'HEADLESS'}`);
             if (isSumoRunning) {
-              stopSumo().then(() => startSumo(nextGui));
+              stopSumo();
+              startSumo(nextGui);
             }
           }}
           className={sumoGui ? 'btn-minimal-active !text-[0.65rem]' : 'btn-minimal !text-[0.65rem]'}
@@ -151,7 +177,7 @@ export default function SimulationBar({
             <button
               key={spd}
               onClick={() => updateSumoSpeed(spd)}
-              className={`font-mono text-[0.65rem] px-2 py-0.5 border cursor-pointer transition-colors ${
+              className={`font-mono text-[0.65rem] px-2 py-0.5 border cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
                 sumoSpeed === spd
                   ? 'border-zinc-900 text-zinc-900 font-bold dark:border-white dark:text-white'
                   : 'border-zinc-300 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400'

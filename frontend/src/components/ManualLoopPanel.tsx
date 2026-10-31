@@ -1,4 +1,16 @@
 import React from 'react';
+import { SignalPhase } from '../types';
+
+interface ManualLoopPanelProps {
+  currentPhase: SignalPhase;
+  isLoopRunning: boolean;
+  manualA: number;
+  setManualA: (val: number) => void;
+  manualB: number;
+  setManualB: (val: number) => void;
+  startManualLoop: () => void;
+  stopManualLoop: () => void;
+}
 
 export default function ManualLoopPanel({
   currentPhase,
@@ -9,7 +21,7 @@ export default function ManualLoopPanel({
   setManualB,
   startManualLoop,
   stopManualLoop,
-}) {
+}: ManualLoopPanelProps) {
   return (
     <div className="mt-3 flex flex-col gap-2">
       <div className="grid grid-cols-2 gap-2">
@@ -33,7 +45,7 @@ export default function ManualLoopPanel({
                   const val = Math.max(5, parseInt(e.target.value) || 5);
                   setManualA(val);
                 }}
-                className="w-14 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 p-1 text-xs font-mono font-bold text-center outline-none"
+                className="w-14 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 p-1 text-xs font-mono font-bold text-center outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white"
               />
               <span className="font-mono text-xs text-zinc-400">s</span>
             </div>
@@ -45,7 +57,7 @@ export default function ManualLoopPanel({
               <button
                 key={sec}
                 onClick={() => setManualA(sec)}
-                className={`py-1 text-[0.65rem] font-mono font-bold border transition-colors cursor-pointer ${
+                className={`py-1 text-[0.65rem] font-mono font-bold border transition-colors cursor-pointer focus-visible:outline-1 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
                   manualA === sec
                     ? 'bg-zinc-200 border-zinc-400 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-600 dark:text-white'
                     : 'bg-white border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:bg-black dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-white'
@@ -77,7 +89,7 @@ export default function ManualLoopPanel({
                   const val = Math.max(5, parseInt(e.target.value) || 5);
                   setManualB(val);
                 }}
-                className="w-14 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 p-1 text-xs font-mono font-bold text-center outline-none"
+                className="w-14 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 p-1 text-xs font-mono font-bold text-center outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white"
               />
               <span className="font-mono text-xs text-zinc-400">s</span>
             </div>
@@ -89,7 +101,7 @@ export default function ManualLoopPanel({
               <button
                 key={sec}
                 onClick={() => setManualB(sec)}
-                className={`py-1 text-[0.65rem] font-mono font-bold border transition-colors cursor-pointer ${
+                className={`py-1 text-[0.65rem] font-mono font-bold border transition-colors cursor-pointer focus-visible:outline-1 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
                   manualB === sec
                     ? 'bg-zinc-200 border-zinc-400 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-600 dark:text-white'
                     : 'bg-white border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:bg-black dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-white'
@@ -107,7 +119,7 @@ export default function ManualLoopPanel({
         {!isLoopRunning ? (
           <button
             onClick={startManualLoop}
-            className="w-full btn-action bg-zinc-900 text-white dark:bg-white dark:text-black font-extrabold tracking-wider py-2.5 shadow-sm"
+            className="w-full btn-action bg-zinc-900 text-white dark:bg-white dark:text-black font-extrabold tracking-wider py-2.5 shadow-sm focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white"
           >
             ▶ VALIDATE & START MANUAL LOOP ({manualA}s ➔ {manualB}s)
           </button>

@@ -1,6 +1,12 @@
 import React from 'react';
 
-export default function Footer({ log, isSnapshotMode, snapshotInterval }) {
+interface FooterProps {
+  log: string;
+  isSnapshotMode: boolean;
+  snapshotInterval: number;
+}
+
+export default function Footer({ log, isSnapshotMode, snapshotInterval }: FooterProps) {
   return (
     <footer className="mt-5 pt-3.5 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center flex-wrap gap-2">
       <div className="flex items-center gap-2.5">

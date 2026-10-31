@@ -3,17 +3,19 @@
  * Centralized, typed HTTP client for backend endpoints.
  */
 
+import { SerialPortsResponse, EnvironmentType, OperatingMode, VisionMode, ApproachName } from '../types';
+
 export const API_BASE = 'http://localhost:8000';
 export const WS_URL = 'ws://localhost:8000/ws';
 
 export const apiClient = {
   // Controller Endpoints
-  async switchMode(newMode) {
+  async switchMode(newMode: OperatingMode) {
     const res = await fetch(`${API_BASE}/controller/mode/${newMode}`, { method: 'POST' });
     return res.json();
   },
 
-  async startManualLoop(phaseA, phaseB, startPhase = 'A') {
+  async startManualLoop(phaseA: number, phaseB: number, startPhase: 'A' | 'B' = 'A') {
     const res = await fetch(`${API_BASE}/controller/manual_loop/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -27,7 +29,7 @@ export const apiClient = {
     return res.json();
   },
 
-  async updateManualConfig(phaseA, phaseB) {
+  async updateManualConfig(phaseA: number, phaseB: number) {
     const res = await fetch(`${API_BASE}/controller/manual_config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -37,12 +39,12 @@ export const apiClient = {
   },
 
   // Priority Endpoints
-  async requestPedestrian(approach) {
+  async requestPedestrian(approach: ApproachName) {
     const res = await fetch(`${API_BASE}/priority/pedestrian/${approach}`, { method: 'POST' });
     return res.json();
   },
 
-  async triggerAmbulance(approach) {
+  async triggerAmbulance(approach: ApproachName) {
     const res = await fetch(`${API_BASE}/priority/ambulance/${approach}`, { method: 'POST' });
     return res.json();
   },
@@ -53,12 +55,12 @@ export const apiClient = {
   },
 
   // Vision Endpoints
-  async switchVisionMode(newMode) {
+  async switchVisionMode(newMode: VisionMode) {
     const res = await fetch(`${API_BASE}/vision/mode/${newMode}`, { method: 'POST' });
     return res.json();
   },
 
-  async setSource(source) {
+  async setSource(source: string) {
     const res = await fetch(`${API_BASE}/video/source?source=${encodeURIComponent(source)}`, { method: 'POST' });
     return res.json();
   },
@@ -68,7 +70,7 @@ export const apiClient = {
     return res.json();
   },
 
-  async uploadVideo(file) {
+  async uploadVideo(file: File) {
     const form = new FormData();
     form.append('file', file);
     const res = await fetch(`${API_BASE}/video/upload`, { method: 'POST', body: form });
@@ -76,12 +78,12 @@ export const apiClient = {
   },
 
   // Hardware Serial Endpoints
-  async fetchSerialPorts() {
+  async fetchSerialPorts(): Promise<SerialPortsResponse> {
     const res = await fetch(`${API_BASE}/serial/ports`);
     return res.json();
   },
 
-  async connectArduino(port) {
+  async connectArduino(port: string) {
     const res = await fetch(`${API_BASE}/serial/connect?port=${encodeURIComponent(port)}`, { method: 'POST' });
     return res.json();
   },
@@ -97,12 +99,12 @@ export const apiClient = {
   },
 
   // SUMO Simulation Endpoints
-  async switchEnvironment(env) {
+  async switchEnvironment(env: EnvironmentType) {
     const res = await fetch(`${API_BASE}/simulation/environment/${env}`, { method: 'POST' });
     return res.json();
   },
 
-  async startSumo(gui = false, speed = 1.0) {
+  async startSumo(gui: boolean = false, speed: number = 1.0) {
     const res = await fetch(`${API_BASE}/simulation/sumo/start?gui=${gui}&speed=${speed}`, { method: 'POST' });
     return res.json();
   },
@@ -127,9 +129,8 @@ export const apiClient = {
     return res.json();
   },
 
-  async updateSumoSpeed(factor) {
+  async updateSumoSpeed(factor: number) {
     const res = await fetch(`${API_BASE}/simulation/sumo/speed/${factor}`, { method: 'POST' });
     return res.json();
   },
 };
-

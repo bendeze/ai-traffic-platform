@@ -1,4 +1,13 @@
 import React from 'react';
+import { TelemetryPayload, ApproachData } from '../types';
+
+interface SumoTelemetryGridProps {
+  sumoApproaches: Record<string, ApproachData>;
+  data: TelemetryPayload | null;
+  isSumoRunning: boolean;
+  sumoGui: boolean;
+  sumoVehicleCount: number;
+}
 
 export default function SumoTelemetryGrid({
   sumoApproaches,
@@ -6,7 +15,7 @@ export default function SumoTelemetryGrid({
   isSumoRunning,
   sumoGui,
   sumoVehicleCount,
-}) {
+}: SumoTelemetryGridProps) {
   return (
     <div className="w-full h-full p-6 flex flex-col justify-between box-border">
       {/* Grid Subheader */}

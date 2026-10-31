@@ -1,6 +1,19 @@
 import React from 'react';
 import { API_BASE } from '../api/client';
 import SumoTelemetryGrid from './SumoTelemetryGrid';
+import { TelemetryPayload, ApproachData } from '../types';
+
+interface VisionFeedMonitorProps {
+  isSumoMode: boolean;
+  isSnapshotMode: boolean;
+  fps: string;
+  sumoTime: number;
+  sumoApproaches: Record<string, ApproachData>;
+  data: TelemetryPayload | null;
+  isSumoRunning: boolean;
+  sumoGui: boolean;
+  sumoVehicleCount: number;
+}
 
 export default function VisionFeedMonitor({
   isSumoMode,
@@ -12,7 +25,7 @@ export default function VisionFeedMonitor({
   isSumoRunning,
   sumoGui,
   sumoVehicleCount,
-}) {
+}: VisionFeedMonitorProps) {
   return (
     <section className="flex flex-col bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
       {/* Feed / Simulation Subheader */}
@@ -35,15 +48,15 @@ export default function VisionFeedMonitor({
         </div>
       </div>
 
-      {/* Screen Monitor Container */}
+      {/* Screen Monitor Container with Viewfinder Focus Markers */}
       <div className="relative flex-1 bg-slate-50 dark:bg-black flex items-center justify-center overflow-hidden min-h-[480px]">
         {!isSumoMode ? (
           <img
             src={`${API_BASE}/video/stream`}
             alt="Telemetry Stream"
             className="w-full h-full object-contain block transition-opacity duration-200"
-            onError={(e) => { e.currentTarget.style.opacity = '0'; }}
-            onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
+            onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
+            onLoad={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
           />
         ) : (
           <SumoTelemetryGrid
@@ -55,11 +68,11 @@ export default function VisionFeedMonitor({
           />
         )}
 
-        {/* Minimalist Tech Corner Markers */}
-        <div className="corner-bracket-tl" />
-        <div className="corner-bracket-tr" />
-        <div className="corner-bracket-bl" />
-        <div className="corner-bracket-br" />
+        {/* Viewfinder Targeting Focus Brackets */}
+        <div className="corner-bracket-tl" title="Camera Viewfinder Focus Bracket (Top-Left)" />
+        <div className="corner-bracket-tr" title="Camera Viewfinder Focus Bracket (Top-Right)" />
+        <div className="corner-bracket-bl" title="Camera Viewfinder Focus Bracket (Bottom-Left)" />
+        <div className="corner-bracket-br" title="Camera Viewfinder Focus Bracket (Bottom-Right)" />
       </div>
     </section>
   );

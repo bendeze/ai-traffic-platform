@@ -1,10 +1,19 @@
 import React from 'react';
+import { TelemetryPayload, ApproachName } from '../types';
+
+interface ApproachTelemetryGridProps {
+  data: TelemetryPayload | null;
+  activePedestrian?: string | null;
+  requestPedestrian: (app: ApproachName) => void;
+}
 
 export default function ApproachTelemetryGrid({
   data,
   activePedestrian,
   requestPedestrian,
-}) {
+}: ApproachTelemetryGridProps) {
+  const approaches: ApproachName[] = ['north', 'south', 'east', 'west'];
+
   return (
     <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-5 flex-1">
       <div className="font-mono text-xs text-zinc-500 dark:text-zinc-400 tracking-wider mb-3.5">
@@ -12,8 +21,8 @@ export default function ApproachTelemetryGrid({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {['north', 'south', 'east', 'west'].map((app) => {
-          const info = data?.approaches?.[app] || { queue: 0, waiting_time: 0, signal: 'red', timer: 0, breakdown: {} };
+        {approaches.map((app) => {
+          const info = data?.approaches?.[app] || { queue: 0, waiting_time: 0, signal: 'red' as const, timer: 0, breakdown: {} };
           const appPhase = (app === 'north' || app === 'south') ? 'A' : 'B';
           const isPedActive = activePedestrian === app || 
             (Boolean(data?.signal?.is_pedestrian_active) && data?.signal?.pedestrian_red_phase === appPhase);
@@ -44,7 +53,7 @@ export default function ApproachTelemetryGrid({
                       ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30'
                       : 'border-zinc-300 dark:border-zinc-700 text-zinc-400'
                   }`}>
-                    {info.signal.toUpperCase()}
+                    {info.signal ? info.signal.toUpperCase() : 'RED'}
                   </span>
                 </div>
               </div>
@@ -52,7 +61,7 @@ export default function ApproachTelemetryGrid({
               <div className="my-2">
                 <div className="flex items-baseline gap-1.5">
                   <span className="font-mono text-2xl font-extrabold text-zinc-900 dark:text-white">
-                    {String(info.queue).padStart(2, '0')}
+                    {String(info.queue ?? 0).padStart(2, '0')}
                   </span>
                   <span className="text-[0.68rem] text-zinc-400">VEHICLES</span>
                 </div>
@@ -63,13 +72,13 @@ export default function ApproachTelemetryGrid({
                 </div>
 
                 <div className="font-mono text-[0.65rem] text-zinc-400 mt-0.5">
-                  WAIT {Math.round(info.waiting_time)}s (CAP: 30s)
+                  WAIT {Math.round(info.waiting_time ?? 0)}s (CAP: 30s)
                 </div>
               </div>
 
               <button
                 onClick={() => requestPedestrian(app)}
-                className={`w-full py-1.5 text-xs font-mono font-bold tracking-wider cursor-pointer border transition-colors ${
+                className={`w-full py-1.5 text-xs font-mono font-bold tracking-wider cursor-pointer border transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
                   isPedActive
                     ? 'bg-red-500 border-red-500 text-white'
                     : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-white'

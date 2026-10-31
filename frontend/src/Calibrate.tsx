@@ -1,25 +1,29 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, MouseEvent } from 'react';
+import { ApproachName } from './types';
 
 const API_BASE = 'http://localhost:8000';
 
-const APPROACHES = ['north', 'south', 'east', 'west'];
-const COLORS = {
+const APPROACHES: ApproachName[] = ['north', 'south', 'east', 'west'];
+const COLORS: Record<ApproachName, string> = {
   north: '#ffffff',
   south: '#aaaaaa',
   east:  '#666666',
   west:  '#444444',
 };
 
-export default function Calibrate({ onClose }) {
-  const canvasRef = useRef(null);
-  const imgRef = useRef(null);
-  const [imgSrc, setImgSrc] = useState(null);
-  const [imgNaturalSize, setImgNaturalSize] = useState({ w: 1280, h: 720 });
-  const [activeApproach, setActiveApproach] = useState('north');
-  const [regions, setRegions] = useState({
+interface CalibrateProps {
+  onClose: () => void;
+}
+
+export default function Calibrate({ onClose }: CalibrateProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [activeApproach, setActiveApproach] = useState<ApproachName>('north');
+  const [regions, setRegions] = useState<Record<ApproachName, [number, number][]>>({
     north: [], south: [], east: [], west: []
   });
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState<boolean>(false);
 
   // Load calibration frame
   useEffect(() => {
@@ -30,9 +34,11 @@ export default function Calibrate({ onClose }) {
   useEffect(() => {
     fetch(`${API_BASE}/config`).then(r => r.json()).then(data => {
       if (data.approaches) {
-        const r = { north: [], south: [], east: [], west: [] };
-        data.approaches.forEach(a => {
-          if (r[a.name] !== undefined) r[a.name] = a.polygon;
+        const r: Record<ApproachName, [number, number][]> = { north: [], south: [], east: [], west: [] };
+        data.approaches.forEach((a: any) => {
+          if (r[a.name as ApproachName] !== undefined) {
+            r[a.name as ApproachName] = a.polygon;
+          }
         });
         setRegions(r);
       }
@@ -56,6 +62,7 @@ export default function Calibrate({ onClose }) {
     const scaleY = ch / nh;
 
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     ctx.clearRect(0, 0, cw, ch);
     ctx.drawImage(img, 0, 0, cw, ch);
 
@@ -106,7 +113,7 @@ export default function Calibrate({ onClose }) {
     });
   };
 
-  const handleCanvasClick = (e) => {
+  const handleCanvasClick = (e: MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     const img = imgRef.current;
     if (!canvas || !img) return;
@@ -117,14 +124,12 @@ export default function Calibrate({ onClose }) {
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
 
-    // Canvas display vs actual size ratio
     const displayScaleX = rect.width / cw;
     const displayScaleY = rect.height / ch;
 
     const canvasX = (e.clientX - rect.left) / displayScaleX;
     const canvasY = (e.clientY - rect.top) / displayScaleY;
 
-    // Convert back to original video coordinates
     const videoX = Math.round(canvasX * (nw / cw));
     const videoY = Math.round(canvasY * (nh / ch));
 
@@ -140,7 +145,7 @@ export default function Calibrate({ onClose }) {
     setSaved(false);
   };
 
-  const setRect = (corners) => {
+  const setRect = (corners: [number, number][]) => {
     setRegions(prev => ({ ...prev, [activeApproach]: corners }));
     setSaved(false);
   };
@@ -166,66 +171,49 @@ export default function Calibrate({ onClose }) {
   const allValid = APPROACHES.every(a => regions[a].length >= 3);
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(0,0,0,0.92)',
-      display: 'flex', flexDirection: 'column',
-      zIndex: 1000, padding: '20px'
-    }}>
+    <div className="fixed inset-0 bg-black/95 flex flex-col z-50 p-5">
       {/* Header */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center', borderBottom: '1px solid #222',
-        paddingBottom: '14px', marginBottom: '16px'
-      }}>
+      <div className="flex justify-between items-center border-b border-zinc-800 pb-3.5 mb-4">
         <div>
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', letterSpacing: '0.12em', color: '#fff' }}>
+          <span className="font-mono text-xs tracking-wider text-white font-bold">
             REGION CALIBRATION
           </span>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', color: '#555', marginTop: '2px' }}>
+          <div className="font-mono text-[0.65rem] text-zinc-500 mt-0.5">
             Click on the frame to define each approach zone · 3+ points per region
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={refreshFrame} style={btn('#111')}>↻ REFRESH FRAME</button>
-          <button onClick={onClose} style={btn('#111')}>✕ CLOSE</button>
+        <div className="flex gap-2">
+          <button onClick={refreshFrame} className="btn-minimal">↻ REFRESH FRAME</button>
+          <button onClick={onClose} className="btn-minimal">✕ CLOSE</button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
-        {/* Canvas */}
-        <div style={{ flex: 1, position: 'relative', border: '1px solid #1a1a1a' }}>
-          <img
-            ref={imgRef}
-            src={imgSrc}
-            onLoad={() => {
-              setImgNaturalSize({ w: imgRef.current.naturalWidth, h: imgRef.current.naturalHeight });
-              drawAll();
-            }}
-            style={{ display: 'none' }}
-            alt=""
-          />
+      <div className="flex gap-5 flex-1 min-h-0">
+        {/* Canvas Monitor */}
+        <div className="flex-1 relative border border-zinc-800 bg-black flex items-center justify-center">
+          {imgSrc && (
+            <img
+              ref={imgRef}
+              src={imgSrc}
+              onLoad={drawAll}
+              className="hidden"
+              alt=""
+            />
+          )}
           <canvas
             ref={canvasRef}
             width={1280}
             height={720}
             onClick={handleCanvasClick}
-            onLoad={drawAll}
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'block',
-              cursor: 'crosshair',
-              objectFit: 'contain'
-            }}
+            className="w-full h-full block cursor-crosshair object-contain"
           />
         </div>
 
-        {/* Right Panel */}
-        <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Right Controls Panel */}
+        <div className="w-56 flex flex-col gap-3">
           {/* Approach Selector */}
-          <div style={{ border: '1px solid #1a1a1a', padding: '14px' }}>
-            <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.65rem', color: '#555', letterSpacing: '0.1em', marginBottom: '10px' }}>
+          <div className="border border-zinc-800 p-3.5 bg-zinc-950">
+            <div className="font-mono text-[0.65rem] text-zinc-500 tracking-wider mb-2.5">
               ACTIVE APPROACH
             </div>
             {APPROACHES.map(app => {
@@ -235,25 +223,14 @@ export default function Calibrate({ onClose }) {
                 <button
                   key={app}
                   onClick={() => setActiveApproach(app)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    marginBottom: '4px',
-                    background: activeApproach === app ? '#ffffff' : 'transparent',
-                    color: activeApproach === app ? '#000' : '#aaa',
-                    border: `1px solid ${activeApproach === app ? '#fff' : '#222'}`,
-                    fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
+                  className={`w-full p-2 mb-1 border font-mono text-xs font-bold tracking-wider cursor-pointer flex justify-between items-center transition-colors ${
+                    activeApproach === app
+                      ? 'bg-white text-black border-white'
+                      : 'bg-transparent text-zinc-400 border-zinc-800 hover:border-zinc-600'
+                  }`}
                 >
                   <span>{app.toUpperCase()}</span>
-                  <span style={{ fontSize: '0.6rem', color: ok ? '#10b981' : '#555' }}>
+                  <span className={`text-[0.6rem] ${ok ? 'text-emerald-500' : 'text-zinc-500'}`}>
                     {ok ? `✓ ${pts.length}pts` : `${pts.length}pts`}
                   </span>
                 </button>
@@ -261,22 +238,22 @@ export default function Calibrate({ onClose }) {
             })}
           </div>
 
-          {/* Controls for active approach */}
-          <div style={{ border: '1px solid #1a1a1a', padding: '14px' }}>
-            <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.65rem', color: '#555', letterSpacing: '0.1em', marginBottom: '10px' }}>
+          {/* Controls for Active Approach */}
+          <div className="border border-zinc-800 p-3.5 bg-zinc-950">
+            <div className="font-mono text-[0.65rem] text-zinc-500 tracking-wider mb-2">
               {activeApproach.toUpperCase()} CONTROLS
             </div>
-            <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.65rem', color: '#666', marginBottom: '10px' }}>
+            <div className="font-mono text-[0.65rem] text-zinc-400 mb-2.5">
               {regions[activeApproach].length} points placed
             </div>
-            <button onClick={clearActive} style={{ ...btn('#111'), width: '100%', marginBottom: '6px' }}>
+            <button onClick={clearActive} className="btn-minimal w-full mb-1.5">
               CLEAR REGION
             </button>
 
-            {/* Quick preset rectangles based on approach */}
+            {/* Presets */}
             <button
               onClick={() => {
-                const presets = {
+                const presets: Record<ApproachName, [number, number][]> = {
                   north: [[430,0],[760,0],[760,200],[430,200]],
                   south: [[390,490],[760,490],[760,720],[390,720]],
                   east:  [[860,170],[1280,170],[1280,450],[860,450]],
@@ -284,32 +261,26 @@ export default function Calibrate({ onClose }) {
                 };
                 setRect(presets[activeApproach]);
               }}
-              style={{ ...btn('#1a1a1a'), width: '100%' }}
+              className="btn-minimal w-full"
             >
               USE PRESET
             </button>
           </div>
 
-          {/* Save */}
+          {/* Save Button */}
           <button
             onClick={saveRegions}
             disabled={!allValid}
-            style={{
-              padding: '12px',
-              backgroundColor: saved ? '#111' : (allValid ? '#ffffff' : '#111'),
-              color: saved ? '#10b981' : (allValid ? '#000' : '#444'),
-              border: `1px solid ${saved ? '#10b981' : (allValid ? '#fff' : '#222')}`,
-              fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              cursor: allValid ? 'pointer' : 'not-allowed',
-            }}
+            className={`p-3 font-mono text-xs font-extrabold tracking-wider border transition-colors ${
+              saved
+                ? 'bg-zinc-900 text-emerald-400 border-emerald-500'
+                : (allValid ? 'bg-white text-black border-white cursor-pointer' : 'bg-zinc-900 text-zinc-600 border-zinc-800 cursor-not-allowed')
+            }`}
           >
             {saved ? '✓ REGIONS SAVED' : 'SAVE REGIONS →'}
           </button>
 
-          <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.62rem', color: '#444', lineHeight: 1.6 }}>
+          <div className="font-mono text-[0.62rem] text-zinc-500 leading-relaxed">
             Click 3–4 points around each road approach zone. The AI will only count vehicles inside these regions.
           </div>
         </div>
@@ -317,18 +288,3 @@ export default function Calibrate({ onClose }) {
     </div>
   );
 }
-
-function btn(bg) {
-  return {
-    backgroundColor: bg,
-    color: '#ffffff',
-    border: '1px solid #333',
-    padding: '6px 12px',
-    fontFamily: 'JetBrains Mono, monospace',
-    fontSize: '0.7rem',
-    fontWeight: 600,
-    letterSpacing: '0.05em',
-    cursor: 'pointer',
-  };
-}
-

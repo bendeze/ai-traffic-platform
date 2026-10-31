@@ -1,6 +1,11 @@
 import React from 'react';
 
-export default function AmbulanceBanner({ activeAmbulance, clearAmbulance }) {
+interface AmbulanceBannerProps {
+  activeAmbulance?: string | null;
+  clearAmbulance: () => void;
+}
+
+export default function AmbulanceBanner({ activeAmbulance, clearAmbulance }: AmbulanceBannerProps) {
   if (!activeAmbulance) return null;
 
   return (
@@ -13,7 +18,7 @@ export default function AmbulanceBanner({ activeAmbulance, clearAmbulance }) {
       </div>
       <button
         onClick={clearAmbulance}
-        className="bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-extrabold px-3 py-1 cursor-pointer transition-colors"
+        className="bg-red-600 hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-white text-white font-mono text-xs font-extrabold px-3 py-1 cursor-pointer transition-colors"
       >
         DISMISS AMBULANCE
       </button>

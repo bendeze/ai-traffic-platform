@@ -1,5 +1,27 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { SerialPortInfo, EnvironmentType } from '../types';
+
+interface HeaderProps {
+  isSumoMode: boolean;
+  isSumoRunning: boolean;
+  startSumo: () => void;
+  switchEnvironment: (env: EnvironmentType) => void;
+  setSource: (source: string) => void;
+  handleFileUpload: (e: ChangeEvent<HTMLInputElement>) => void;
+  stopFeed: () => void;
+  setShowCalibrate: (show: boolean) => void;
+  wsConnected: boolean;
+  isArduinoConnected: boolean;
+  arduinoPort: string;
+  testArduinoLeds: () => void;
+  disconnectArduino: () => void;
+  selectedPort: string;
+  setSelectedPort: (port: string) => void;
+  serialPorts: SerialPortInfo[];
+  connectArduino: (port: string) => void;
+  fetchSerialPorts: () => void;
+}
 
 export default function Header({
   isSumoMode,
@@ -20,7 +42,7 @@ export default function Header({
   serialPorts,
   connectArduino,
   fetchSerialPorts,
-}) {
+}: HeaderProps) {
   const { isLight, toggleTheme } = useTheme();
 
   return (
@@ -121,7 +143,7 @@ export default function Header({
               <select
                 value={selectedPort}
                 onChange={(e) => setSelectedPort(e.target.value)}
-                className="bg-white dark:bg-black text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 text-xs font-mono px-1.5 py-1 outline-none cursor-pointer"
+                className="bg-white dark:bg-black text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 text-xs font-mono px-1.5 py-1 outline-none cursor-pointer focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white"
               >
                 {serialPorts.length > 0 ? (
                   serialPorts.map((p) => (

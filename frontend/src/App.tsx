@@ -1,7 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, ChangeEvent } from 'react';
 import Calibrate from './Calibrate';
 import { apiClient } from './api/client';
 import { useTrafficSocket } from './hooks/useTrafficSocket';
+import {
+  OperatingMode,
+  VisionMode,
+  ApproachName,
+  EnvironmentType,
+  SerialPortInfo,
+} from './types';
 import {
   Header,
   AmbulanceBanner,
@@ -15,27 +22,27 @@ import {
 
 export default function App() {
   // Runtime operational state
-  const [log, setLog] = useState('SYSTEM INITIALIZED');
-  const handleLog = useCallback((msg) => setLog(msg), []);
+  const [log, setLog] = useState<string>('SYSTEM INITIALIZED');
+  const handleLog = useCallback((msg: string) => setLog(msg), []);
 
   // Telemetry stream via WebSocket
   const { data, wsConnected } = useTrafficSocket(handleLog);
 
   // Controller & Vision Modes
-  const [mode, setMode] = useState('adaptive');
-  const [visionMode, setVisionMode] = useState('tracking');
-  const [manualA, setManualA] = useState(30);
-  const [manualB, setManualB] = useState(30);
-  const [activePedestrian, setActivePedestrian] = useState(null);
+  const [mode, setMode] = useState<OperatingMode>('adaptive');
+  const [visionMode, setVisionMode] = useState<VisionMode>('tracking');
+  const [manualA, setManualA] = useState<number>(30);
+  const [manualB, setManualB] = useState<number>(30);
+  const [activePedestrian, setActivePedestrian] = useState<string | null>(null);
 
   // Hardware Serial State
-  const [serialPorts, setSerialPorts] = useState([]);
-  const [selectedPort, setSelectedPort] = useState('COM6');
+  const [serialPorts, setSerialPorts] = useState<SerialPortInfo[]>([]);
+  const [selectedPort, setSelectedPort] = useState<string>('COM6');
 
   // Modal & Simulation Settings
-  const [showCalibrate, setShowCalibrate] = useState(false);
-  const [sumoGui, setSumoGui] = useState(false);
-  const [sumoSpeed, setSumoSpeed] = useState(1.0);
+  const [showCalibrate, setShowCalibrate] = useState<boolean>(false);
+  const [sumoGui, setSumoGui] = useState<boolean>(false);
+  const [sumoSpeed, setSumoSpeed] = useState<number>(1.0);
 
   // Sync state from server telemetry updates
   useEffect(() => {
@@ -116,7 +123,7 @@ export default function App() {
     }
   };
 
-  const switchVisionMode = async (newMode) => {
+  const switchVisionMode = async (newMode: VisionMode) => {
     setVisionMode(newMode);
     try {
       await apiClient.switchVisionMode(newMode);
@@ -126,7 +133,7 @@ export default function App() {
     }
   };
 
-  const switchMode = async (newMode) => {
+  const switchMode = async (newMode: OperatingMode) => {
     setMode(newMode);
     try {
       await apiClient.switchMode(newMode);
@@ -136,7 +143,7 @@ export default function App() {
     }
   };
 
-  const requestPedestrian = async (approach) => {
+  const requestPedestrian = async (approach: ApproachName) => {
     setActivePedestrian(approach);
     try {
       await apiClient.requestPedestrian(approach);
@@ -149,7 +156,7 @@ export default function App() {
     }
   };
 
-  const triggerAmbulance = async (approach) => {
+  const triggerAmbulance = async (approach: ApproachName) => {
     try {
       await apiClient.triggerAmbulance(approach);
       setLog(`EMERGENCY: AMBULANCE DISPATCHED ON ${approach.toUpperCase()}!`);
@@ -167,7 +174,7 @@ export default function App() {
     }
   };
 
-  const setSource = async (source) => {
+  const setSource = async (source: string) => {
     try {
       await apiClient.setSource(source);
       setLog(`FEED INPUT: ${source.toUpperCase()}`);
@@ -185,7 +192,7 @@ export default function App() {
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setLog(`UPLOADING ${file.name.toUpperCase()}...`);
@@ -197,7 +204,7 @@ export default function App() {
     }
   };
 
-  const connectArduino = async (portToConnect) => {
+  const connectArduino = async (portToConnect: string) => {
     const port = portToConnect || selectedPort || 'COM6';
     try {
       setLog(`CONNECTING TO ARDUINO ON ${port}...`);
@@ -242,12 +249,12 @@ export default function App() {
 
       await apiClient.testArduinoLeds();
       setLog('ARDUINO DIAGNOSTIC SWEEP ACTIVE (PINS 2 TO 13)');
-    } catch (err) {
+    } catch (err: any) {
       setLog(`TEST COMMAND ERROR: ${err.message || 'FAILED'}`);
     }
   };
 
-  const switchEnvironment = async (env) => {
+  const switchEnvironment = async (env: EnvironmentType) => {
     try {
       await apiClient.switchEnvironment(env);
       setLog(`ENVIRONMENT SWITCHED: ${env.toUpperCase()}`);
@@ -256,7 +263,7 @@ export default function App() {
     }
   };
 
-  const startSumo = async (gui = sumoGui) => {
+  const startSumo = async (gui: boolean = sumoGui) => {
     try {
       setLog(`STARTING SUMO SIMULATION (${gui ? 'GUI' : 'HEADLESS'})...`);
       const res = await apiClient.startSumo(gui, sumoSpeed);
@@ -307,7 +314,7 @@ export default function App() {
     }
   };
 
-  const updateSumoSpeed = async (factor) => {
+  const updateSumoSpeed = async (factor: number) => {
     setSumoSpeed(factor);
     try {
       await apiClient.updateSumoSpeed(factor);
