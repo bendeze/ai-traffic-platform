@@ -19,3 +19,4 @@ export default function Footer({ log, isSnapshotMode, snapshotInterval }: Footer
     </footer>
   );
 }
+

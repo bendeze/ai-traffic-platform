@@ -22,7 +22,7 @@ export default function ApproachTelemetryGrid({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {approaches.map((app) => {
-          const info = data?.approaches?.[app] || { queue: 0, waiting_time: 0, signal: 'red' as const, timer: 0, breakdown: {} };
+          const info = data?.approaches?.[app] || { queue: 0, waiting_time: 0, signal: 'red' as const, timer: 0, breakdown: {}, mean_speed: 0 };
           const appPhase = (app === 'north' || app === 'south') ? 'A' : 'B';
           const isPedActive = activePedestrian === app || 
             (Boolean(data?.signal?.is_pedestrian_active) && data?.signal?.pedestrian_red_phase === appPhase);
@@ -66,13 +66,14 @@ export default function ApproachTelemetryGrid({
                   <span className="text-[0.68rem] text-zinc-400">VEHICLES</span>
                 </div>
                 
-                {/* Detailed counts */}
+                {/* Detailed vehicle counts */}
                 <div className="font-mono text-[0.65rem] text-zinc-500 dark:text-zinc-400 mt-1 leading-tight">
                   CARS:{bd.car || 0} · TRUCKS:{bd.truck || 0} · BIKES:{bd.motorcycle || 0} · BUS:{bd.bus || 0}
                 </div>
 
-                <div className="font-mono text-[0.65rem] text-zinc-400 mt-0.5">
-                  WAIT {Math.round(info.waiting_time ?? 0)}s (CAP: 30s)
+                <div className="flex justify-between items-center font-mono text-[0.65rem] text-zinc-400 mt-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-900">
+                  <span>WAIT {Math.round(info.waiting_time ?? 0)}s</span>
+                  <span>SPEED {info.mean_speed ? `${info.mean_speed} m/s` : '—'}</span>
                 </div>
               </div>
 

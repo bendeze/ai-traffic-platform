@@ -40,3 +40,4 @@ export function useTrafficSocket(onLog?: (msg: string) => void) {
 
   return { data, wsConnected };
 }
+

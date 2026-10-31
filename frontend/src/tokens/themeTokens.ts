@@ -71,3 +71,4 @@ export function getThemeTokens(isLight: boolean): ThemeTokens {
     blue: isLight ? '#0284c7' : '#38bdf8',
   };
 }
+

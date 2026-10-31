@@ -86,3 +86,4 @@ export interface SerialPortInfo {
 export interface SerialPortsResponse {
   ports: SerialPortInfo[];
 }
+

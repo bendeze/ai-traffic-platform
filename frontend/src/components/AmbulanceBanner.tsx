@@ -25,3 +25,4 @@ export default function AmbulanceBanner({ activeAmbulance, clearAmbulance }: Amb
     </div>
   );
 }
+

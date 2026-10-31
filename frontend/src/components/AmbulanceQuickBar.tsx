@@ -30,3 +30,4 @@ export default function AmbulanceQuickBar({ activeAmbulance, triggerAmbulance }:
     </div>
   );
 }
+
