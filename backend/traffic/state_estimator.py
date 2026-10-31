@@ -78,3 +78,17 @@ class TrafficStateEstimator:
 
     def get_state(self) -> Dict[str, ApproachState]:
         return self._states
+
+    def reset(self):
+        """Resets all approach estimates and tracking timers to initial zero state."""
+        for name, st in self._states.items():
+            st.queue_estimate = 0
+            st.vehicle_count = 0
+            st.waiting_time = 0.0
+            st.arrivals = 0
+            st.freshness = 0.0
+            st.has_ambulance = False
+            st.breakdown = {"car": 0, "truck": 0, "motorcycle": 0, "bus": 0, "ambulance": 0}
+        self._first_seen.clear()
+        self._last_counts.clear()
+        self._last_update.clear()

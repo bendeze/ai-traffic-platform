@@ -133,6 +133,12 @@ class SUMOPerceptionAdapter:
     def get_metrics(self) -> Dict[str, dict]:
         return self._last_metrics
 
+    def reset(self):
+        """Resets cached approach states and telemetry metrics."""
+        self._last_metrics = {}
+        self._cached_states = {
+            a: ApproachState(name=a) for a in self.APPROACH_EDGES
+        }
+
 # Global singleton
 sumo_perception_adapter = SUMOPerceptionAdapter()
-

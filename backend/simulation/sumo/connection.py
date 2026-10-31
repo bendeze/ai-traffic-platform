@@ -27,7 +27,7 @@ class SumoConnection:
 
     def is_connected(self) -> bool:
         with self._lock:
-            if not self._is_connected:
+            if not self._is_connected or traci is None:
                 return False
             try:
                 # Check if TraCI connection is still responsive
@@ -63,7 +63,7 @@ class SumoConnection:
                 "--step-length", str(step_length),
                 "--no-warnings", "true",
                 "--start", "true",
-                "--quit-on-end", "false"
+                "--quit-on-end", "true"
             ]
             if additional_args:
                 cmd.extend(additional_args)
@@ -79,10 +79,40 @@ class SumoConnection:
                 self._stop_unlocked()
                 raise e
 
+    def reload(self, config_path: Optional[str] = None, step_length: float = 0.1, additional_args: Optional[List[str]] = None) -> bool:
+        """
+        Reloads the active simulation using traci.load in-process.
+        This instantaneously resets simulation time to 0.0s and reloads all routes/vehicles
+        without closing the GUI window or recreating TraCI TCP sockets.
+        """
+        with self._lock:
+            if not self._is_connected or traci is None:
+                return False
+            cfg = config_path or self._current_config
+            if not cfg or not os.path.isfile(cfg):
+                return False
+            try:
+                traci.switch(self._traci_label)
+                cmd = [
+                    "-c", os.path.abspath(cfg),
+                    "--step-length", str(step_length),
+                    "--no-warnings", "true",
+                    "--start", "true",
+                    "--quit-on-end", "true"
+                ]
+                if additional_args:
+                    cmd.extend(additional_args)
+                traci.load(cmd)
+                self._sim_time = 0.0
+                return True
+            except Exception:
+                self._is_connected = False
+                return False
+
     def step(self) -> float:
         """Advances the simulation by one step. Returns current simulation time in seconds."""
         with self._lock:
-            if not self._is_connected:
+            if not self._is_connected or traci is None:
                 raise RuntimeError("Simulation is not running.")
             traci.switch(self._traci_label)
             traci.simulationStep()
@@ -101,8 +131,9 @@ class SumoConnection:
     def _stop_unlocked(self):
         if self._is_connected:
             try:
-                traci.switch(self._traci_label)
-                traci.close()
+                if traci is not None:
+                    traci.switch(self._traci_label)
+                    traci.close()
             except Exception:
                 pass
             self._is_connected = False

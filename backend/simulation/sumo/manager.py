@@ -35,7 +35,7 @@ class SUMOManager:
         self._sim_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
         self._pause_event = threading.Event()
-        self._pause_event.set() # Unpaused initially
+        self._pause_event.set()  # Unpaused initially
 
         # References to external FSM and SafetyManager
         self.fsm_engine = None
@@ -62,6 +62,10 @@ class SUMOManager:
             return False
 
         metrics_collector.reset()
+        self.perception_adapter.reset()
+        if self.estimator:
+            self.estimator.reset()
+
         self.is_running = True
         self.is_paused = False
         self._stop_event.clear()
@@ -92,6 +96,30 @@ class SUMOManager:
         self.conn.stop()
 
     def reset_simulation(self) -> bool:
+        """
+        Resets the simulation to t=0.0s.
+        If TraCI is active, uses in-process traci.load() to instantly reload scenario.
+        Otherwise falls back to stop/start.
+        """
+        if self.is_running and self.conn.is_connected():
+            was_paused = self.is_paused
+            self._pause_event.clear()  # Temporarily pause background stepping thread
+            time.sleep(0.05)  # Allow any active conn.step() call to complete
+
+            try:
+                ok = self.conn.reload(config_path=self.default_cfg, step_length=0.1)
+                if ok:
+                    metrics_collector.reset()
+                    self.perception_adapter.reset()
+                    if self.estimator:
+                        self.estimator.reset()
+                    self.is_paused = False
+                    self._pause_event.set()
+                    return True
+            except Exception:
+                pass
+
+        # Fallback if reload wasn't possible or failed
         gui = self.is_gui
         speed = self.speed_factor
         self.stop_simulation()
@@ -177,4 +205,3 @@ class SUMOManager:
 
 # Global singleton manager
 sumo_mgr = SUMOManager()
-
