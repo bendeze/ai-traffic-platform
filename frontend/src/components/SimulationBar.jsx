@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
 
 export default function SimulationBar({
   isSumoMode,
@@ -24,76 +23,47 @@ export default function SimulationBar({
   updateSumoSpeed,
   setLog
 }) {
-  const { isLight, t, btnMinimal } = useTheme();
-
   if (!isSumoMode) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: t.bgPanel,
-        border: `1px solid ${t.borderMain}`,
-        padding: '6px 14px',
-        marginBottom: '20px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <span className="mono" style={{ fontSize: '0.68rem', color: t.textSubtle, letterSpacing: '0.1em' }}>
+      <div className="flex justify-between items-center bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-3.5 py-2 mb-5">
+        <div className="flex items-center gap-3.5">
+          <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400 tracking-wider">
             VISION ENGINE:
           </span>
-          <div style={{
-            display: 'inline-flex',
-            backgroundColor: t.bgInput,
-            border: `1px solid ${t.borderMuted}`,
-            padding: '2px'
-          }}>
+          <div className="inline-flex bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 p-0.5">
             <button
               onClick={() => switchVisionMode('tracking')}
-              style={{
-                backgroundColor: !isSnapshotMode ? t.btnActiveBg : 'transparent',
-                color: !isSnapshotMode ? t.btnActiveColor : t.textMuted,
-                border: 'none',
-                padding: '6px 16px',
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
+              className={`font-mono text-xs font-bold tracking-wider px-4 py-1.5 cursor-pointer transition-colors ${
+                !isSnapshotMode
+                  ? 'bg-zinc-900 text-white dark:bg-white dark:text-black'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
             >
               CONTINUOUS TRACKING
             </button>
             <button
               onClick={() => switchVisionMode('snapshot')}
-              style={{
-                backgroundColor: isSnapshotMode ? t.btnActiveBg : 'transparent',
-                color: isSnapshotMode ? t.btnActiveColor : t.textMuted,
-                border: 'none',
-                padding: '6px 16px',
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
+              className={`font-mono text-xs font-bold tracking-wider px-4 py-1.5 cursor-pointer transition-colors ${
+                isSnapshotMode
+                  ? 'bg-zinc-900 text-white dark:bg-white dark:text-black'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
             >
               SNAPSHOT {snapshotInterval}s
             </button>
           </div>
         </div>
 
-        {/* Minimalist Inline Telemetry */}
-        <div className="mono" style={{ fontSize: '0.7rem', color: t.textMuted, display: 'flex', gap: '14px' }}>
+        {/* Telemetry Indicator */}
+        <div className="font-mono text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-3">
           {isSnapshotMode ? (
             <>
-              <span>NEXT: <strong style={{ color: t.textPrimary }}>{nextSnapIn}s</strong></span>
-              <span style={{ color: t.borderStrong }}>/</span>
-              <span>CAPTURED: <strong style={{ color: t.textPrimary }}>#{snapCount}</strong></span>
+              <span>NEXT: <strong className="text-zinc-900 dark:text-white">{nextSnapIn}s</strong></span>
+              <span className="text-zinc-400 dark:text-zinc-600">/</span>
+              <span>CAPTURED: <strong className="text-zinc-900 dark:text-white">#{snapCount}</strong></span>
             </>
           ) : (
-            <span>RATE: <strong style={{ color: t.textPrimary }}>{fps} FPS</strong></span>
+            <span>RATE: <strong className="text-zinc-900 dark:text-white">{fps} FPS</strong></span>
           )}
         </div>
       </div>
@@ -101,69 +71,58 @@ export default function SimulationBar({
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: t.bgPanel,
-      border: `1px solid ${t.borderMain}`,
-      padding: '8px 14px',
-      marginBottom: '20px',
-      flexWrap: 'wrap',
-      gap: '12px'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span className="mono" style={{ fontSize: '0.68rem', color: t.textSubtle, letterSpacing: '0.1em' }}>
+    <div className="flex justify-between items-center bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-3.5 py-2 mb-5 flex-wrap gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400 tracking-wider">
           SUMO ENGINE:
         </span>
         
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '3px 8px',
-          border: `1px solid ${t.borderStrong}`,
-          borderRadius: '2px',
-          backgroundColor: t.bgSubtle
-        }}>
-          <span style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            backgroundColor: isSumoRunning ? (isSumoPaused ? '#f59e0b' : '#22c55e') : t.borderStrong
-          }} />
-          <span className="mono" style={{
-            fontSize: '0.68rem',
-            fontWeight: 700,
-            color: isSumoRunning ? (isSumoPaused ? '#f59e0b' : (isLight ? '#166534' : '#86efac')) : t.textMuted
-          }}>
+        {/* State Badge */}
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-zinc-300 dark:border-zinc-700 rounded-sm bg-zinc-50 dark:bg-zinc-900/60">
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            isSumoRunning ? (isSumoPaused ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-zinc-400 dark:bg-zinc-600'
+          }`} />
+          <span className={`font-mono text-xs font-bold ${
+            isSumoRunning 
+              ? (isSumoPaused ? 'text-amber-500' : 'text-emerald-700 dark:text-emerald-400') 
+              : 'text-zinc-500 dark:text-zinc-400'
+          }`}>
             {isSumoRunning ? (isSumoPaused ? 'PAUSED' : 'RUNNING') : 'STOPPED'}
           </span>
         </div>
 
-        {/* Simulation Lifecycle Action Buttons */}
+        {/* Action Controls */}
         {!isSumoRunning ? (
           <button
             onClick={() => startSumo(sumoGui)}
-            style={{ ...btnMinimal, borderColor: '#22c55e', color: isLight ? '#166534' : '#86efac', fontWeight: 700 }}
+            className="btn-minimal border-emerald-500 text-emerald-700 dark:text-emerald-400 font-bold"
           >
             ▶ START
           </button>
         ) : (
           <>
             {isSumoPaused ? (
-              <button onClick={resumeSumo} style={{ ...btnMinimal, borderColor: '#22c55e', color: isLight ? '#166534' : '#86efac' }}>
+              <button
+                onClick={resumeSumo}
+                className="btn-minimal border-emerald-500 text-emerald-700 dark:text-emerald-400"
+              >
                 ▶ RESUME
               </button>
             ) : (
-              <button onClick={pauseSumo} style={{ ...btnMinimal, borderColor: '#f59e0b', color: isLight ? '#b45309' : '#fcd34d' }}>
+              <button
+                onClick={pauseSumo}
+                className="btn-minimal border-amber-500 text-amber-600 dark:text-amber-300"
+              >
                 ⏸ PAUSE
               </button>
             )}
-            <button onClick={resetSumo} style={btnMinimal}>
+            <button onClick={resetSumo} className="btn-minimal">
               ↺ RESET
             </button>
-            <button onClick={stopSumo} style={{ ...btnMinimal, borderColor: '#ef4444', color: isLight ? '#dc2626' : '#fca5a5' }}>
+            <button
+              onClick={stopSumo}
+              className="btn-minimal border-red-500 text-red-600 dark:text-red-300"
+            >
               ⏹ STOP
             </button>
           </>
@@ -179,31 +138,24 @@ export default function SimulationBar({
               stopSumo().then(() => startSumo(nextGui));
             }
           }}
-          style={{
-            ...btnMinimal,
-            backgroundColor: sumoGui ? t.btnActiveBg : 'transparent',
-            color: sumoGui ? t.btnActiveColor : t.textMuted,
-            fontSize: '0.65rem'
-          }}
+          className={sumoGui ? 'btn-minimal-active !text-[0.65rem]' : 'btn-minimal !text-[0.65rem]'}
           title="Launch external SUMO-GUI window on desktop"
         >
           GUI: {sumoGui ? 'ON' : 'OFF'}
         </button>
 
         {/* Speed Factor */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '6px' }}>
-          <span className="mono" style={{ fontSize: '0.65rem', color: t.textSubtle }}>SPEED:</span>
+        <div className="flex items-center gap-1 ml-1.5">
+          <span className="font-mono text-xs text-zinc-400">SPEED:</span>
           {[0.5, 1.0, 2.0, 3.0].map((spd) => (
             <button
               key={spd}
               onClick={() => updateSumoSpeed(spd)}
-              style={{
-                ...btnMinimal,
-                fontSize: '0.62rem',
-                padding: '2px 6px',
-                borderColor: sumoSpeed === spd ? t.borderHighlight : t.borderStrong,
-                color: sumoSpeed === spd ? t.textPrimary : t.textMuted
-              }}
+              className={`font-mono text-[0.65rem] px-2 py-0.5 border cursor-pointer transition-colors ${
+                sumoSpeed === spd
+                  ? 'border-zinc-900 text-zinc-900 font-bold dark:border-white dark:text-white'
+                  : 'border-zinc-300 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400'
+              }`}
             >
               {spd}x
             </button>
@@ -211,11 +163,11 @@ export default function SimulationBar({
         </div>
       </div>
 
-      {/* Telemetry Info */}
-      <div className="mono" style={{ fontSize: '0.72rem', color: t.textMuted, display: 'flex', gap: '14px' }}>
-        <span>SIM TIME: <strong style={{ color: t.textPrimary }}>{sumoTime.toFixed(1)}s</strong></span>
-        <span style={{ color: t.borderStrong }}>/</span>
-        <span>SIM VEHICLES: <strong style={{ color: isLight ? '#166534' : '#86efac' }}>{sumoVehicleCount}</strong></span>
+      {/* Telemetry Stats */}
+      <div className="font-mono text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-3">
+        <span>SIM TIME: <strong className="text-zinc-900 dark:text-white">{sumoTime.toFixed(1)}s</strong></span>
+        <span className="text-zinc-400 dark:text-zinc-600">/</span>
+        <span>SIM VEHICLES: <strong className="text-emerald-700 dark:text-emerald-400">{sumoVehicleCount}</strong></span>
       </div>
     </div>
   );

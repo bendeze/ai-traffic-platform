@@ -1,23 +1,13 @@
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
 
 export default function Footer({ log, isSnapshotMode, snapshotInterval }) {
-  const { t } = useTheme();
-
   return (
-    <footer style={{
-      marginTop: '20px',
-      paddingTop: '14px',
-      borderTop: `1px solid ${t.borderMain}`,
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span className="mono" style={{ fontSize: '0.7rem', color: t.textSubtle }}>STATUS:</span>
-        <span className="mono" style={{ fontSize: '0.7rem', color: t.textSecondary }}>{log}</span>
+    <footer className="mt-5 pt-3.5 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center flex-wrap gap-2">
+      <div className="flex items-center gap-2.5">
+        <span className="font-mono text-xs text-zinc-400">STATUS:</span>
+        <span className="font-mono text-xs text-zinc-600 dark:text-zinc-300 font-semibold">{log}</span>
       </div>
-      <div className="mono" style={{ fontSize: '0.7rem', color: t.textSubtle }}>
+      <div className="font-mono text-xs text-zinc-400">
         SAMPLING: {isSnapshotMode ? `PHOTO (${snapshotInterval}s)` : 'CONTINUOUS'} · MAX WAIT: 30s · ALL-YELLOW: 3s
       </div>
     </footer>

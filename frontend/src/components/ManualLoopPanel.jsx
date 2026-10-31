@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
 
 export default function ManualLoopPanel({
   currentPhase,
@@ -11,57 +10,20 @@ export default function ManualLoopPanel({
   startManualLoop,
   stopManualLoop,
 }) {
-  const { isLight, t, btnAction } = useTheme();
-
-  const inputDurationStyle = {
-    width: '54px',
-    backgroundColor: t.inputBg,
-    color: t.textPrimary,
-    border: `1px solid ${t.inputBorder}`,
-    padding: '4px 6px',
-    fontSize: '0.8rem',
-    fontWeight: 700,
-    fontFamily: 'JetBrains Mono, monospace',
-    textAlign: 'center',
-    outline: 'none',
-  };
-
-  const presetBtnStyle = (active) => ({
-    flex: 1,
-    padding: '4px 0',
-    backgroundColor: active ? (isLight ? '#e4e4e7' : '#222222') : (isLight ? '#ffffff' : '#050505'),
-    color: active ? t.textPrimary : t.textMuted,
-    border: '1px solid',
-    borderColor: active ? (isLight ? '#a1a1aa' : '#555555') : t.borderMain,
-    fontSize: '0.65rem',
-    fontWeight: 700,
-    fontFamily: 'JetBrains Mono, monospace',
-    cursor: 'pointer',
-    transition: 'all 0.15s ease'
-  });
-
   return (
-    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '8px'
-      }}>
-        {/* ── Section 1: Phase A ────────────────── */}
-        <div style={{
-          backgroundColor: t.bgCard,
-          border: '1px solid',
-          borderColor: currentPhase === 'A' && isLoopRunning ? t.borderHighlight : t.borderMuted,
-          padding: '10px 12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="mono" style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', color: t.textPrimary }}>
+    <div className="mt-3 flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        {/* Phase A Control */}
+        <div className={`bg-white dark:bg-black border p-2.5 flex flex-col gap-2 transition-colors ${
+          currentPhase === 'A' && isLoopRunning
+            ? 'border-zinc-900 dark:border-white'
+            : 'border-zinc-300 dark:border-zinc-800'
+        }`}>
+          <div className="flex justify-between items-center">
+            <span className="font-mono text-xs font-extrabold tracking-wide text-zinc-900 dark:text-white">
               PHASE A (N · S)
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <div className="flex items-center gap-1">
               <input
                 type="number"
                 min="5"
@@ -71,19 +33,23 @@ export default function ManualLoopPanel({
                   const val = Math.max(5, parseInt(e.target.value) || 5);
                   setManualA(val);
                 }}
-                style={inputDurationStyle}
+                className="w-14 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 p-1 text-xs font-mono font-bold text-center outline-none"
               />
-              <span className="mono" style={{ fontSize: '0.65rem', color: t.textMuted }}>s</span>
+              <span className="font-mono text-xs text-zinc-400">s</span>
             </div>
           </div>
 
-          {/* Quick Select Presets */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+          {/* Quick Presets */}
+          <div className="grid grid-cols-4 gap-1">
             {[15, 30, 45, 60].map((sec) => (
               <button
                 key={sec}
                 onClick={() => setManualA(sec)}
-                style={presetBtnStyle(manualA === sec)}
+                className={`py-1 text-[0.65rem] font-mono font-bold border transition-colors cursor-pointer ${
+                  manualA === sec
+                    ? 'bg-zinc-200 border-zinc-400 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-600 dark:text-white'
+                    : 'bg-white border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:bg-black dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-white'
+                }`}
               >
                 {sec}s
               </button>
@@ -91,21 +57,17 @@ export default function ManualLoopPanel({
           </div>
         </div>
 
-        {/* ── Section 2: Phase B ────────────────── */}
-        <div style={{
-          backgroundColor: t.bgCard,
-          border: '1px solid',
-          borderColor: currentPhase === 'B' && isLoopRunning ? t.borderHighlight : t.borderMuted,
-          padding: '10px 12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="mono" style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', color: t.textPrimary }}>
+        {/* Phase B Control */}
+        <div className={`bg-white dark:bg-black border p-2.5 flex flex-col gap-2 transition-colors ${
+          currentPhase === 'B' && isLoopRunning
+            ? 'border-zinc-900 dark:border-white'
+            : 'border-zinc-300 dark:border-zinc-800'
+        }`}>
+          <div className="flex justify-between items-center">
+            <span className="font-mono text-xs font-extrabold tracking-wide text-zinc-900 dark:text-white">
               PHASE B (E · W)
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <div className="flex items-center gap-1">
               <input
                 type="number"
                 min="5"
@@ -115,19 +77,23 @@ export default function ManualLoopPanel({
                   const val = Math.max(5, parseInt(e.target.value) || 5);
                   setManualB(val);
                 }}
-                style={inputDurationStyle}
+                className="w-14 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 p-1 text-xs font-mono font-bold text-center outline-none"
               />
-              <span className="mono" style={{ fontSize: '0.65rem', color: t.textMuted }}>s</span>
+              <span className="font-mono text-xs text-zinc-400">s</span>
             </div>
           </div>
 
-          {/* Quick Select Presets */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+          {/* Quick Presets */}
+          <div className="grid grid-cols-4 gap-1">
             {[15, 30, 45, 60].map((sec) => (
               <button
                 key={sec}
                 onClick={() => setManualB(sec)}
-                style={presetBtnStyle(manualB === sec)}
+                className={`py-1 text-[0.65rem] font-mono font-bold border transition-colors cursor-pointer ${
+                  manualB === sec
+                    ? 'bg-zinc-200 border-zinc-400 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-600 dark:text-white'
+                    : 'bg-white border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:bg-black dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-white'
+                }`}
               >
                 {sec}s
               </button>
@@ -136,50 +102,26 @@ export default function ManualLoopPanel({
         </div>
       </div>
 
-      {/* ── Validation & Loop Control Bar ─────── */}
+      {/* Control Actions */}
       <div>
         {!isLoopRunning ? (
           <button
             onClick={startManualLoop}
-            style={{
-              ...btnAction,
-              width: '100%',
-              backgroundColor: t.btnActiveBg,
-              color: t.btnActiveColor,
-              fontWeight: 800,
-              fontSize: '0.72rem',
-              padding: '10px',
-              letterSpacing: '0.06em',
-              boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.1)' : '0 0 12px rgba(255, 255, 255, 0.15)'
-            }}
+            className="w-full btn-action bg-zinc-900 text-white dark:bg-white dark:text-black font-extrabold tracking-wider py-2.5 shadow-sm"
           >
             ▶ VALIDATE & START MANUAL LOOP ({manualA}s ➔ {manualB}s)
           </button>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '8px' }}>
+          <div className="grid grid-cols-[1.4fr_1fr] gap-2">
             <button
               onClick={startManualLoop}
-              style={{
-                ...btnAction,
-                backgroundColor: isLight ? '#f1f5f9' : '#111111',
-                borderColor: t.borderStrong,
-                color: t.textPrimary,
-                fontSize: '0.68rem',
-                padding: '8px'
-              }}
+              className="btn-action py-2 text-xs"
             >
               ↻ UPDATE LOOP ({manualA}s / {manualB}s)
             </button>
             <button
               onClick={stopManualLoop}
-              style={{
-                ...btnAction,
-                backgroundColor: isLight ? '#fee2e2' : '#2a0909',
-                borderColor: '#ef4444',
-                color: isLight ? '#dc2626' : '#fca5a5',
-                fontSize: '0.68rem',
-                padding: '8px'
-              }}
+              className="btn-action py-2 text-xs bg-red-100 border-red-400 text-red-600 hover:bg-red-200 dark:bg-red-950/60 dark:border-red-600 dark:text-red-300"
             >
               ⏹ PAUSE LOOP
             </button>
@@ -187,14 +129,8 @@ export default function ManualLoopPanel({
         )}
       </div>
 
-      <div className="mono" style={{
-        fontSize: '0.64rem',
-        padding: '6px 10px',
-        backgroundColor: t.bgSubtle,
-        border: `1px solid ${t.borderMain}`,
-        color: isLoopRunning ? t.textPrimary : t.textMuted,
-        textAlign: 'center'
-      }}>
+      {/* Hint Note */}
+      <div className="font-mono text-[0.65rem] p-1.5 px-2.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 text-center">
         {isLoopRunning
           ? `● MANUAL LOOP RUNNING (A: ${manualA}s / B: ${manualB}s) — ACTIVE TIMER WILL FINISH BEFORE NEW DURATIONS APPLY`
           : `SET SECONDS FOR PHASE A AND B ABOVE, THEN CLICK VALIDATE TO START THE LOOP`}

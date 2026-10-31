@@ -110,3 +110,4 @@ export function getCommonStyles(t, isLight) {
     },
   };
 }
+

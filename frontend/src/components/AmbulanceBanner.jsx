@@ -4,41 +4,16 @@ export default function AmbulanceBanner({ activeAmbulance, clearAmbulance }) {
   if (!activeAmbulance) return null;
 
   return (
-    <div style={{
-      backgroundColor: '#3b0707',
-      border: '1px solid #ef4444',
-      padding: '10px 18px',
-      borderRadius: '4px',
-      marginBottom: '18px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span style={{
-          display: 'inline-block',
-          width: '10px',
-          height: '10px',
-          borderRadius: '50%',
-          backgroundColor: '#ef4444',
-          boxShadow: '0 0 10px #ef4444'
-        }} />
-        <span className="mono" style={{ fontWeight: 800, fontSize: '0.8rem', color: '#fca5a5' }}>
+    <div className="bg-red-950/80 border border-red-500 p-2.5 px-4 rounded mb-4 flex justify-between items-center animate-pulse">
+      <div className="flex items-center gap-2.5">
+        <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]" />
+        <span className="font-mono font-extrabold text-xs text-red-200 tracking-wide">
           EMERGENCY VEHICLE PREEMPTION ACTIVE — APPROACH: {activeAmbulance.toUpperCase()}
         </span>
       </div>
       <button
         onClick={clearAmbulance}
-        style={{
-          background: '#ef4444',
-          color: '#ffffff',
-          border: 'none',
-          padding: '4px 12px',
-          fontSize: '0.7rem',
-          fontWeight: 800,
-          fontFamily: 'JetBrains Mono, monospace',
-          cursor: 'pointer'
-        }}
+        className="bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-extrabold px-3 py-1 cursor-pointer transition-colors"
       >
         DISMISS AMBULANCE
       </button>

@@ -39,3 +39,4 @@ export function useTrafficSocket(onLog) {
 
   return { data, wsConnected };
 }
+

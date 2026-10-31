@@ -21,167 +21,107 @@ export default function Header({
   connectArduino,
   fetchSerialPorts,
 }) {
-  const { isLight, toggleTheme, t, btnMinimal } = useTheme();
+  const { isLight, toggleTheme } = useTheme();
 
   return (
-    <header style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      borderBottom: `1px solid ${t.borderMain}`,
-      paddingBottom: '20px',
-      marginBottom: '20px'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <span style={{
-          fontSize: '1.05rem',
-          fontWeight: 800,
-          letterSpacing: '0.15em',
-          border: `1px solid ${t.borderHighlight}`,
-          color: t.textPrimary,
-          padding: '3px 8px'
-        }}>
+    <header className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-5 mb-5 flex-wrap gap-4">
+      {/* Brand & Platform Identity */}
+      <div className="flex items-center gap-4">
+        <span className="text-base font-extrabold tracking-widest border border-zinc-900 dark:border-white text-zinc-900 dark:text-white px-2 py-0.5">
           GROUP Z
         </span>
-        <span className="mono" style={{ fontSize: '0.75rem', color: t.textSubtle, letterSpacing: '0.1em' }}>
+        <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400 tracking-wider hidden sm:inline">
           AI TRAFFIC MANAGEMENT PLATFORM
         </span>
       </div>
 
-      {/* Operating Environment & Source Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {/* Primary SUMO Simulation Environment */}
+      {/* Operating Environment & Hardware Controls */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* SUMO Simulation Environment Toggle */}
         <button
           onClick={() => { switchEnvironment('sumo'); if (!isSumoRunning) startSumo(); }}
-          style={{
-            ...btnMinimal,
-            backgroundColor: isSumoMode ? t.btnActiveBg : 'transparent',
-            color: isSumoMode ? t.btnActiveColor : t.textPrimary,
-            borderColor: t.borderHighlight,
-            fontWeight: 800,
-            letterSpacing: '0.05em'
-          }}
+          className={isSumoMode ? 'btn-minimal-active' : 'btn-minimal'}
         >
           SUMO SIMULATION
         </button>
 
-        {/* Physical Camera / Webcam */}
+        {/* Physical Camera Feed */}
         <button
           onClick={() => { switchEnvironment('video'); setSource('webcam'); }}
-          style={{
-            ...btnMinimal,
-            backgroundColor: (!isSumoMode) ? (isLight ? '#e4e4e7' : '#222222') : 'transparent',
-            borderColor: (!isSumoMode) ? t.borderHighlight : t.borderMuted,
-            color: (!isSumoMode) ? t.textPrimary : t.textMuted
-          }}
+          className={!isSumoMode ? 'btn-minimal-active' : 'btn-minimal'}
         >
           CAMERA
         </button>
 
         {/* Upload Custom Video Footage */}
-        <label style={{ ...btnMinimal, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+        <label className="btn-minimal cursor-pointer inline-flex items-center">
           UPLOAD
           <input
             type="file"
             accept="video/*"
             onChange={(e) => { switchEnvironment('video'); handleFileUpload(e); }}
-            style={{ display: 'none' }}
+            className="hidden"
           />
         </label>
 
         {!isSumoMode && (
           <>
-            <button onClick={stopFeed} style={btnMinimal}>
+            <button onClick={stopFeed} className="btn-minimal">
               HALT
             </button>
-            <button onClick={() => setShowCalibrate(true)} style={{ ...btnMinimal, borderColor: '#555' }}>
+            <button onClick={() => setShowCalibrate(true)} className="btn-minimal border-zinc-500">
               CALIBRATE REGIONS
             </button>
           </>
         )}
 
         {/* WebSocket Connection Status */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginLeft: '14px',
-          paddingLeft: '14px',
-          borderLeft: `1px solid ${t.borderMain}`
-        }}>
-          <span style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            backgroundColor: wsConnected ? (isLight ? '#16a34a' : '#ffffff') : t.borderStrong,
-            boxShadow: wsConnected ? (isLight ? '0 0 8px #16a34a' : '0 0 8px #ffffff') : 'none'
-          }} />
-          <span className="mono" style={{ fontSize: '0.7rem', color: t.textMuted, letterSpacing: '0.05em' }}>
+        <div className="flex items-center gap-2 ml-3.5 pl-3.5 border-l border-zinc-200 dark:border-zinc-800">
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            wsConnected 
+              ? 'bg-emerald-600 dark:bg-white shadow-[0_0_8px_#16a34a] dark:shadow-[0_0_8px_#ffffff]' 
+              : 'bg-zinc-400 dark:bg-zinc-600'
+          }`} />
+          <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
             {wsConnected ? 'LIVE' : 'OFFLINE'}
           </span>
         </div>
 
-        {/* Physical Arduino Hardware Serial Controls with Port Selector */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginLeft: '14px',
-          paddingLeft: '14px',
-          borderLeft: `1px solid ${t.borderMain}`
-        }}>
-          <span style={{
-            width: '7px',
-            height: '7px',
-            borderRadius: '50%',
-            backgroundColor: isArduinoConnected ? '#22c55e' : t.borderStrong,
-            boxShadow: isArduinoConnected ? '0 0 8px #22c55e' : 'none'
-          }} />
+        {/* Arduino Serial Hardware Controls */}
+        <div className="flex items-center gap-2 ml-3.5 pl-3.5 border-l border-zinc-200 dark:border-zinc-800">
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            isArduinoConnected ? 'bg-emerald-500 shadow-[0_0_8px_#22c55e]' : 'bg-zinc-400 dark:bg-zinc-600'
+          }`} />
 
-          {/* TEST LEDS button */}
           <button
             onClick={testArduinoLeds}
             title="Test all 12 physical LEDs on breadboard (Pins 2 to 13)"
-            style={{
-              ...btnMinimal,
-              fontSize: '0.65rem',
-              padding: '4px 9px',
-              borderColor: t.borderHighlight,
-              color: t.textPrimary,
-              fontWeight: 700,
-              letterSpacing: '0.05em'
-            }}
+            className="btn-minimal font-bold border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
           >
             TEST LEDS
           </button>
           
           {isArduinoConnected ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="mono" style={{ fontSize: '0.72rem', color: isLight ? '#166534' : '#86efac', fontWeight: 700, letterSpacing: '0.05em' }}>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                 {arduinoPort} CONNECTED
               </span>
-              <button onClick={disconnectArduino} title="Disconnect USB serial" style={{ ...btnMinimal, fontSize: '0.62rem', padding: '3px 8px', borderColor: '#ef4444', color: '#fca5a5' }}>
+              <button
+                onClick={disconnectArduino}
+                className="btn-minimal !px-2 !py-0.5 border-red-500 text-red-500 hover:border-red-400"
+              >
                 DISCONNECT
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="mono" style={{ fontSize: '0.68rem', color: t.textMuted }}>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
                 ARDUINO:
               </span>
               <select
                 value={selectedPort}
                 onChange={(e) => setSelectedPort(e.target.value)}
-                style={{
-                  backgroundColor: t.bgInput,
-                  color: t.textPrimary,
-                  border: `1px solid ${t.borderStrong}`,
-                  fontSize: '0.68rem',
-                  fontFamily: 'JetBrains Mono, monospace',
-                  padding: '3px 6px',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
+                className="bg-white dark:bg-black text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 text-xs font-mono px-1.5 py-1 outline-none cursor-pointer"
               >
                 {serialPorts.length > 0 ? (
                   serialPorts.map((p) => (
@@ -201,8 +141,7 @@ export default function Header({
 
               <button
                 onClick={() => connectArduino(selectedPort)}
-                title="Connect to selected COM port"
-                style={{ ...btnMinimal, fontSize: '0.65rem', padding: '3px 8px', borderColor: '#22c55e', color: isLight ? '#166534' : '#86efac', fontWeight: 700 }}
+                className="btn-minimal border-emerald-500 text-emerald-700 dark:text-emerald-400 font-bold"
               >
                 CONNECT
               </button>
@@ -210,7 +149,7 @@ export default function Header({
               <button
                 onClick={fetchSerialPorts}
                 title="Scan for connected serial ports"
-                style={{ ...btnMinimal, fontSize: '0.65rem', padding: '3px 6px', borderColor: t.borderStrong }}
+                className="btn-minimal px-2"
               >
                 ↻
               </button>
@@ -218,29 +157,12 @@ export default function Header({
           )}
         </div>
 
-        {/* Theme Toggle Button (Light / Dark) */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          marginLeft: '14px',
-          paddingLeft: '14px',
-          borderLeft: `1px solid ${t.borderMain}`
-        }}>
+        {/* Theme Toggle Button */}
+        <div className="flex items-center ml-3.5 pl-3.5 border-l border-zinc-200 dark:border-zinc-800">
           <button
             onClick={toggleTheme}
             title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
-            style={{
-              ...btnMinimal,
-              backgroundColor: isLight ? '#09090b' : '#ffffff',
-              color: isLight ? '#ffffff' : '#000000',
-              borderColor: isLight ? '#09090b' : '#ffffff',
-              fontWeight: 800,
-              fontSize: '0.68rem',
-              padding: '4px 10px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
+            className="btn-minimal-active flex items-center gap-1.5 !px-3"
           >
             <span>{isLight ? '☾ DARK' : '☀ LIGHT'}</span>
           </button>

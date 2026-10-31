@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
 import { API_BASE } from '../api/client';
 import SumoTelemetryGrid from './SumoTelemetryGrid';
 
@@ -14,64 +13,37 @@ export default function VisionFeedMonitor({
   sumoGui,
   sumoVehicleCount,
 }) {
-  const { isLight, t, cornerTL, cornerTR, cornerBL, cornerBR } = useTheme();
-
   return (
-    <section style={{
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: t.bgPanel,
-      border: `1px solid ${t.borderMain}`
-    }}>
-      {/* Feed / Simulation Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 16px',
-        borderBottom: `1px solid ${t.borderMain}`
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="mono" style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>
+    <section className="flex flex-col bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+      {/* Feed / Simulation Subheader */}
+      <div className="flex justify-between items-center p-3 px-4 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs font-semibold tracking-wider text-zinc-900 dark:text-white">
             {isSumoMode ? 'SUMO ENGINE' : 'FEED 01'}
           </span>
-          <span style={{ fontSize: '0.75rem', color: t.textDim }}>/</span>
-          <span className="mono" style={{ fontSize: '0.7rem', color: t.textMuted }}>
+          <span className="text-xs text-zinc-300 dark:text-zinc-700">/</span>
+          <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
             {isSumoMode
               ? 'TRACI CLOSED-LOOP 4-WAY INTERSECTION'
               : (isSnapshotMode ? 'PHOTO SNAPSHOT INSPECTION' : 'CONTINUOUS VEHICLE TRACKING')}
           </span>
         </div>
-        <div className="mono" style={{ fontSize: '0.75rem', color: t.textMuted }}>
+        <div className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
           {isSumoMode
             ? `TIME: ${sumoTime.toFixed(1)}s`
-            : (isSnapshotMode ? `INTERVAL: 2.0s` : `${fps} FPS`)}
+            : (isSnapshotMode ? 'INTERVAL: 2.0s' : `${fps} FPS`)}
         </div>
       </div>
 
-      {/* Screen Monitor */}
-      <div style={{
-        position: 'relative',
-        flex: 1,
-        backgroundColor: isLight ? '#f8fafc' : '#000000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        minHeight: '480px'
-      }}>
+      {/* Screen Monitor Container */}
+      <div className="relative flex-1 bg-slate-50 dark:bg-black flex items-center justify-center overflow-hidden min-h-[480px]">
         {!isSumoMode ? (
           <img
             src={`${API_BASE}/video/stream`}
             alt="Telemetry Stream"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              display: 'block'
-            }}
-            onError={(e) => { e.target.style.opacity = '0'; }}
-            onLoad={(e) => { e.target.style.opacity = '1'; }}
+            className="w-full h-full object-contain block transition-opacity duration-200"
+            onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+            onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
           />
         ) : (
           <SumoTelemetryGrid
@@ -84,10 +56,10 @@ export default function VisionFeedMonitor({
         )}
 
         {/* Minimalist Tech Corner Markers */}
-        <div style={cornerTL} />
-        <div style={cornerTR} />
-        <div style={cornerBL} />
-        <div style={cornerBR} />
+        <div className="corner-bracket-tl" />
+        <div className="corner-bracket-tr" />
+        <div className="corner-bracket-bl" />
+        <div className="corner-bracket-br" />
       </div>
     </section>
   );

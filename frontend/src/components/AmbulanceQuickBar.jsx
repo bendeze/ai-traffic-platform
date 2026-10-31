@@ -1,33 +1,20 @@
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
 
 export default function AmbulanceQuickBar({ activeAmbulance, triggerAmbulance }) {
-  const { t, btnMinimal } = useTheme();
-
   return (
-    <div style={{
-      padding: '12px 16px',
-      borderTop: `1px solid ${t.borderMain}`,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      flexWrap: 'wrap',
-      backgroundColor: t.bgPanel
-    }}>
-      <span className="mono" style={{ fontSize: '0.65rem', color: t.textMuted }}>
+    <div className="p-3 px-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2.5 flex-wrap bg-white dark:bg-zinc-950">
+      <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
         TRIGGER AMBULANCE:
       </span>
       {['north', 'south', 'east', 'west'].map((app) => (
         <button
           key={app}
           onClick={() => triggerAmbulance(app)}
-          style={{
-            ...btnMinimal,
-            fontSize: '0.65rem',
-            padding: '4px 8px',
-            borderColor: activeAmbulance === app ? '#ef4444' : t.borderMuted,
-            color: activeAmbulance === app ? '#ef4444' : t.textPrimary
-          }}
+          className={`btn-minimal text-xs font-mono !py-1 !px-2.5 ${
+            activeAmbulance === app
+              ? '!border-red-500 !text-red-500'
+              : 'border-zinc-300 dark:border-zinc-800'
+          }`}
         >
           + {app.toUpperCase()}
         </button>

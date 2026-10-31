@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
 
 export default function SumoTelemetryGrid({
   sumoApproaches,
@@ -8,117 +7,92 @@ export default function SumoTelemetryGrid({
   sumoGui,
   sumoVehicleCount,
 }) {
-  const { isLight, t } = useTheme();
-
   return (
-    <div style={{
-      width: '100%',
-      height: '100%',
-      padding: '24px',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      boxSizing: 'border-box'
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderBottom: `1px solid ${t.borderMain}`,
-        paddingBottom: '10px'
-      }}>
-        <span className="mono" style={{ fontSize: '0.75rem', color: t.textSecondary }}>
+    <div className="w-full h-full p-6 flex flex-col justify-between box-border">
+      {/* Grid Subheader */}
+      <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-2.5">
+        <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
           APPROACH TELEMETRY — 4-WAY MICROSCOPIC FLOW
         </span>
-        <span className="mono" style={{ fontSize: '0.7rem', color: isLight ? '#166534' : '#22c55e', fontWeight: 700 }}>
+        <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">
           ● TRACI LIVE SYNCHRONIZED
         </span>
       </div>
 
       {/* 2x2 Grid of Approaches */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '16px',
-        margin: '16px 0'
-      }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-4">
         {['north', 'south', 'east', 'west'].map((app) => {
           const appData = sumoApproaches[app] || data?.approaches?.[app] || {};
           const sigColor = appData.signal || data?.approaches?.[app]?.signal || 'red';
-          const sigColorHex = sigColor === 'green' ? '#22c55e' : (sigColor === 'yellow' ? '#f59e0b' : '#ef4444');
           const timerVal = appData.timer ?? data?.approaches?.[app]?.timer ?? 0;
           const bd = appData.breakdown || {};
+
+          // Dynamic border & badge color classes
+          const borderClass = sigColor === 'green'
+            ? 'border-emerald-500/80 shadow-[0_0_10px_rgba(34,197,94,0.15)]'
+            : sigColor === 'yellow'
+            ? 'border-amber-500/80'
+            : 'border-zinc-200 dark:border-zinc-800';
+
+          const badgeClass = sigColor === 'green'
+            ? 'text-emerald-700 bg-emerald-100 border-emerald-500 dark:text-emerald-400 dark:bg-emerald-950/40'
+            : sigColor === 'yellow'
+            ? 'text-amber-700 bg-amber-100 border-amber-500 dark:text-amber-400 dark:bg-amber-950/40'
+            : 'text-red-700 bg-red-100 border-red-500 dark:text-red-400 dark:bg-red-950/40';
 
           return (
             <div
               key={app}
-              style={{
-                backgroundColor: t.bgPanel,
-                border: '1px solid',
-                borderColor: sigColor === 'green' ? (isLight ? '#86efac' : '#166534') : (sigColor === 'yellow' ? (isLight ? '#fcd34d' : '#854d0e') : t.borderMain),
-                padding: '14px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                transition: 'border-color 0.2s ease',
-                boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
-              }}
+              className={`bg-white dark:bg-zinc-950 border ${borderClass} p-3.5 flex flex-col gap-2 transition-colors duration-200 shadow-sm dark:shadow-none`}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="mono" style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.05em' }}>
+              <div className="flex justify-between items-center">
+                <span className="font-mono text-sm font-extrabold tracking-wide text-zinc-900 dark:text-white">
                   {app.toUpperCase()} APPROACH
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="mono" style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    color: sigColor === 'green' ? (isLight ? '#166534' : '#ffffff') : (sigColor === 'yellow' ? '#f59e0b' : t.textMuted)
-                  }}>
+                <div className="flex items-center gap-2">
+                  <span className={`font-mono text-xs font-extrabold ${
+                    sigColor === 'green' ? 'text-emerald-600 dark:text-emerald-400' : (sigColor === 'yellow' ? 'text-amber-500' : 'text-zinc-400')
+                  }`}>
                     {timerVal}s
                   </span>
-                  <span style={{
-                    fontSize: '0.65rem',
-                    fontWeight: 800,
-                    color: sigColorHex,
-                    border: `1px solid ${sigColorHex}`,
-                    padding: '2px 6px',
-                    borderRadius: '2px',
-                    backgroundColor: `${sigColorHex}15`
-                  }}>
+                  <span className={`text-[0.65rem] font-bold px-1.5 py-0.5 border rounded-sm ${badgeClass}`}>
                     {sigColor.toUpperCase()}
                   </span>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+              {/* Approach Metrics */}
+              <div className="grid grid-cols-2 gap-2 mt-1">
                 <div>
-                  <div className="mono" style={{ fontSize: '0.62rem', color: t.textSubtle }}>VEHICLES</div>
-                  <div className="mono" style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+                  <div className="font-mono text-[0.65rem] text-zinc-400">VEHICLES</div>
+                  <div className="font-mono text-lg font-extrabold text-zinc-900 dark:text-white">
                     {appData.vehicle_count ?? 0}
                   </div>
                 </div>
                 <div>
-                  <div className="mono" style={{ fontSize: '0.62rem', color: t.textSubtle }}>QUEUE</div>
-                  <div className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: (appData.queue_length ?? 0) > 3 ? '#f59e0b' : t.textPrimary }}>
+                  <div className="font-mono text-[0.65rem] text-zinc-400">QUEUE</div>
+                  <div className={`font-mono text-lg font-extrabold ${
+                    (appData.queue_length ?? 0) > 3 ? 'text-amber-500' : 'text-zinc-900 dark:text-white'
+                  }`}>
                     {appData.queue_length ?? appData.queue ?? 0}
                   </div>
                 </div>
                 <div>
-                  <div className="mono" style={{ fontSize: '0.62rem', color: t.textSubtle }}>MEAN SPEED</div>
-                  <div className="mono" style={{ fontSize: '0.85rem', color: t.textSecondary }}>
+                  <div className="font-mono text-[0.65rem] text-zinc-400">MEAN SPEED</div>
+                  <div className="font-mono text-xs text-zinc-600 dark:text-zinc-300">
                     {appData.mean_speed ? `${appData.mean_speed} m/s` : '—'}
                   </div>
                 </div>
                 <div>
-                  <div className="mono" style={{ fontSize: '0.62rem', color: t.textSubtle }}>WAIT TIME</div>
-                  <div className="mono" style={{ fontSize: '0.85rem', color: t.textSecondary }}>
+                  <div className="font-mono text-[0.65rem] text-zinc-400">WAIT TIME</div>
+                  <div className="font-mono text-xs text-zinc-600 dark:text-zinc-300">
                     {appData.waiting_time ? `${appData.waiting_time}s` : '0.0s'}
                   </div>
                 </div>
               </div>
 
-              {/* Breakdown */}
-              <div className="mono" style={{ fontSize: '0.62rem', color: t.textMuted, marginTop: '6px', borderTop: `1px solid ${t.borderMain}`, paddingTop: '4px' }}>
+              {/* Classification Breakdown */}
+              <div className="font-mono text-[0.65rem] text-zinc-400 mt-1 border-t border-zinc-100 dark:border-zinc-900 pt-1">
                 Cars: {bd.car ?? 0} | Buses: {bd.bus ?? 0} | Trucks: {bd.truck ?? 0} | Moto: {bd.motorcycle ?? 0}
               </div>
             </div>
@@ -126,18 +100,12 @@ export default function SumoTelemetryGrid({
         })}
       </div>
 
-      <div style={{
-        padding: '8px 12px',
-        backgroundColor: t.bgSubtle,
-        border: `1px solid ${t.borderMain}`,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <span className="mono" style={{ fontSize: '0.68rem', color: t.textMuted }}>
+      {/* TraCI Status Strip */}
+      <div className="p-2 px-3 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+        <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
           {sumoGui ? 'SUMO-GUI ACTIVE: Simulation window running on desktop' : 'HEADLESS SUMO: TraCI active at 10 Hz (step=0.1s)'}
         </span>
-        <span className="mono" style={{ fontSize: '0.68rem', color: t.textSecondary }}>
+        <span className="font-mono text-xs text-zinc-600 dark:text-zinc-300 font-semibold">
           {isSumoRunning ? `TOTAL ACTIVE: ${sumoVehicleCount}` : 'STOPPED'}
         </span>
       </div>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Calibrate from './Calibrate';
-import { useTheme } from './context/ThemeContext';
 import { apiClient } from './api/client';
 import { useTrafficSocket } from './hooks/useTrafficSocket';
 import {
@@ -15,8 +14,6 @@ import {
 } from './components';
 
 export default function App() {
-  const { t } = useTheme();
-
   // Runtime operational state
   const [log, setLog] = useState('SYSTEM INITIALIZED');
   const handleLog = useCallback((msg) => setLog(msg), []);
@@ -321,15 +318,7 @@ export default function App() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: t.bgApp,
-      color: t.textPrimary,
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '24px 32px',
-      transition: 'background-color 0.2s ease, color 0.2s ease'
-    }}>
+    <div className="min-h-screen bg-zinc-100 dark:bg-black text-zinc-950 dark:text-white flex flex-col p-6 md:p-8 transition-colors duration-200">
       {showCalibrate && <Calibrate onClose={() => setShowCalibrate(false)} />}
 
       {/* Top Navigation & Settings Bar */}
@@ -386,14 +375,9 @@ export default function App() {
       />
 
       {/* Main Grid: Left Monitor vs Right Telemetry */}
-      <main style={{
-        display: 'grid',
-        gridTemplateColumns: '1.6fr 1fr',
-        gap: '24px',
-        flex: 1
-      }}>
+      <main className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6 flex-1">
         {/* Left: Monitor (Stream or SUMO 4-Way Board) + Quick Ambulance Action Bar */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="flex flex-col">
           <VisionFeedMonitor
             isSumoMode={isSumoMode}
             isSnapshotMode={isSnapshotMode}
@@ -412,7 +396,7 @@ export default function App() {
         </div>
 
         {/* Right: Controller Phase Status & Approach Telemetry */}
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <section className="flex flex-col gap-5">
           <PhaseStatusBox
             currentPhase={currentPhase}
             signalState={signalState}
