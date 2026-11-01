@@ -38,7 +38,7 @@ export default function App() {
 
   // Hardware Serial State
   const [serialPorts, setSerialPorts] = useState<SerialPortInfo[]>([]);
-  const [selectedPort, setSelectedPort] = useState<string>('COM6');
+  const [selectedPort, setSelectedPort] = useState<string>('auto');
 
   // Modal & Simulation Settings
   const [showCalibrate, setShowCalibrate] = useState<boolean>(false);
@@ -65,10 +65,10 @@ export default function App() {
       if (d?.ports) {
         setSerialPorts(d.ports);
         const ard = d.ports.find((p) => p.is_arduino);
-        if (ard) {
+        if (ard && selectedPort === 'auto') {
           setSelectedPort(ard.port);
-        } else if (d.ports.length > 0 && !selectedPort) {
-          setSelectedPort(d.ports[0].port);
+        } else if (d.ports.length === 0) {
+          setSelectedPort('auto');
         }
       }
     } catch (e) {
@@ -212,15 +212,16 @@ export default function App() {
   };
 
   const connectArduino = async (portToConnect: string) => {
-    const port = portToConnect || selectedPort || 'COM6';
+    const port = portToConnect && portToConnect !== 'none' ? portToConnect : 'auto';
     try {
-      setLog(`CONNECTING TO ARDUINO ON ${port}...`);
+      setLog(`CONNECTING TO ARDUINO (${port === 'auto' ? 'AUTO-DETECT' : port})...`);
       const d = await apiClient.connectArduino(port);
       if (d.status === 'ok') {
-        setLog(`ARDUINO CONNECTED ON ${d.serial?.port || port}`);
+        const detectedPort = d.serial?.port || port;
+        setLog(`ARDUINO CONNECTED ON ${detectedPort}`);
         fetchSerialPorts();
       } else {
-        setLog(`CONNECT FAILED: ${d.error || 'COULD NOT OPEN ' + port}`);
+        setLog(`CONNECT FAILED: ${d.error || 'COULD NOT OPEN SERIAL'}`);
       }
     } catch {
       setLog('SERIAL CONNECT FAILED');
@@ -240,14 +241,14 @@ export default function App() {
   const testArduinoLeds = async () => {
     try {
       if (!isArduinoConnected) {
-        const port = selectedPort || 'COM6';
-        setLog(`CONNECTING TO ARDUINO ON ${port} FIRST...`);
+        const port = selectedPort && selectedPort !== 'none' ? selectedPort : 'auto';
+        setLog(`CONNECTING TO ARDUINO (${port === 'auto' ? 'AUTO-DETECT' : port}) FIRST...`);
         const connData = await apiClient.connectArduino(port);
         if (connData.status !== 'ok') {
-          setLog(`CONNECT FAILED: ${connData.error || 'COULD NOT OPEN ' + port}`);
+          setLog(`CONNECT FAILED: ${connData.error || 'COULD NOT OPEN SERIAL'}`);
           return;
         }
-        setLog(`ARDUINO CONNECTED ON ${port}! TRIGGERING 12-LED HARDWARE DIAGNOSTIC SWEEP...`);
+        setLog(`ARDUINO CONNECTED ON ${connData.serial?.port || port}! TRIGGERING 12-LED HARDWARE DIAGNOSTIC SWEEP...`);
         fetchSerialPorts();
         await new Promise((r) => setTimeout(r, 1200));
       } else {

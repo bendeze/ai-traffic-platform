@@ -139,12 +139,15 @@ export default function Header({
                 ARDUINO:
               </span>
               
-              <div className="w-[160px]">
+              <div className="w-[175px]">
                 <Select value={selectedPort} onValueChange={setSelectedPort}>
                   <SelectTrigger className="h-7 text-[0.68rem] font-mono px-2 py-0.5">
                     <SelectValue placeholder="Select Port" />
                   </SelectTrigger>
                   <SelectContent className="font-mono text-xs">
+                    <SelectItem value="auto" className="text-[0.68rem] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      ⚡ AUTO-DETECT
+                    </SelectItem>
                     {serialPorts.length > 0 ? (
                       serialPorts.map((p) => (
                         <SelectItem key={p.port} value={p.port} className="text-[0.68rem] font-mono">
@@ -152,20 +155,9 @@ export default function Header({
                         </SelectItem>
                       ))
                     ) : (
-                      <>
-                        <SelectItem value="COM6" className="text-[0.68rem] font-mono">
-                          COM6 (Nano 33 BLE)
-                        </SelectItem>
-                        <SelectItem value="COM3" className="text-[0.68rem] font-mono">
-                          COM3
-                        </SelectItem>
-                        <SelectItem value="COM4" className="text-[0.68rem] font-mono">
-                          COM4
-                        </SelectItem>
-                        <SelectItem value="COM5" className="text-[0.68rem] font-mono">
-                          COM5
-                        </SelectItem>
-                      </>
+                      <SelectItem value="none" disabled className="text-[0.68rem] font-mono text-zinc-400">
+                        No ports found (Click ↻)
+                      </SelectItem>
                     )}
                   </SelectContent>
                 </Select>

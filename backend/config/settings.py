@@ -27,7 +27,7 @@ class TimingConfig:
 class Settings:
     model_path: str        = os.getenv("YOLO_MODEL_PATH", "yolov8n.pt")
     confidence: float      = float(os.getenv("YOLO_CONFIDENCE", 0.35))
-    serial_port: str       = os.getenv("SERIAL_PORT", "COM3")
+    serial_port: str       = os.getenv("SERIAL_PORT", "auto")
     baud_rate: int         = int(os.getenv("SERIAL_BAUD_RATE", 9600))
     serial_enabled: bool   = os.getenv("SERIAL_ENABLED", "false").lower() in ("true", "1", "yes")
     vision_mode: str       = os.getenv("VISION_MODE", "snapshot")      # "tracking" | "snapshot"

@@ -90,7 +90,7 @@ class SerialManager:
                     non_bt = [p["port"] for p in available if "bluetooth" not in p["description"].lower()]
                     target_port = non_bt[0] if non_bt else available[0]["port"]
 
-            if not target_port:
+            if not target_port or target_port.lower() == "auto":
                 self.last_error = "No serial port specified or detected."
                 return False
 
