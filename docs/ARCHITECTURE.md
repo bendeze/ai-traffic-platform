@@ -4,7 +4,7 @@ The **AI Traffic Management Platform** is engineered as a robust, low-latency, m
 
 ---
 
-## 🏛️ High-Level System Architecture
+## High-Level System Architecture
 
 ```mermaid
 flowchart TD
@@ -202,3 +202,4 @@ flowchart LR
         P4["19: West Pedestrian Crossing (:center_c3)"]
     end
 ```
+

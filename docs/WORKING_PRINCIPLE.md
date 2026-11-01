@@ -150,3 +150,4 @@ flowchart TD
 The backend transmits frame-accurate state updates to the physical Arduino controller over USB serial:
 - **Rate-Limiting & State Diffing:** Only updates state when a signal change or timer tick occurs, eliminating serial buffer bloat.
 - **Hardware Watchdog:** The Arduino firmware maintains an active watchdog timer. If software communications cease for $>6.0$ seconds (e.g. host PC reboot or software halt), the Arduino immediately activates **`FAIL_SAFE`** mode (flashing all yellow LEDs at 1 Hz).
+

@@ -134,3 +134,4 @@ If you prefer fixed-time cycling instead of adaptive AI scheduling:
    - The status badge displays **`CONNECTED`** with port and baud rate.
    - Click **TEST LEDS** to trigger a diagnostic verification sweep (all 12 LEDs cycle sequentially across Red, Yellow, and Green).
 5. The 12 physical LEDs will now mirror the software signals in real-time.
+
