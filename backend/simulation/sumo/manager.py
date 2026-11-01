@@ -229,9 +229,16 @@ class SUMOManager:
 
                 # 3. Synchronize authoritative SafetyManager states to SUMO
                 if self.safety_manager:
-                    self.safety_manager.update(time.time())
+                    now_ts = time.time()
+                    self.safety_manager.update(now_ts)
                     current_signals = self.safety_manager.get_approach_states()
-                    self.traffic_adapter.apply_signals(current_signals)
+                    if self.safety_manager.is_pedestrian_red_active(now_ts):
+                        ped_apps = set(getattr(self.safety_manager, "active_pedestrian_approaches", set()))
+                        if not ped_apps and getattr(self.safety_manager, "pedestrian_approach", None):
+                            ped_apps.add(self.safety_manager.pedestrian_approach)
+                    else:
+                        ped_apps = set()
+                    self.traffic_adapter.apply_signals(current_signals, ped_apps)
 
                 # 4. Enforce smooth deceleration & vehicle stopping at pedestrian crossings
                 self._apply_pedestrian_crossing_stops()

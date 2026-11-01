@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 try:
     import traci
 except ImportError:
@@ -70,11 +70,15 @@ class SUMOTrafficAdapter:
         else:
             return "r"
 
-    def build_state_string(self, approach_states: Dict[str, str]) -> str:
+    def build_state_string(self, approach_states: Dict[str, str], active_ped_approaches: Optional[Set[str]] = None) -> str:
         """
         Constructs the exact 20-character TraCI traffic light state string
         from approach states {"north": "...", "south": "...", "east": "...", "west": "..."}.
         16 vehicular approach links + 4 pedestrian crossing links.
+
+        When active_ped_approaches is specified, pedestrian crossings show Green ('G')
+        ONLY for approaches where a pedestrian button was explicitly clicked and traffic is stopped.
+        Otherwise all crossings stay on Red ('r') so the 10s window is never applied unless requested.
         """
         chars = ["r"] * self.TOTAL_LINKS
 
@@ -85,29 +89,32 @@ class SUMOTrafficAdapter:
             for idx in indices:
                 chars[idx] = char
 
-        # 2. Map 4 pedestrian crossings (Green when crossing stopped traffic, Red when vehicles moving)
+        # 2. Map 4 pedestrian crossings
         n_car = approach_states.get("north", "red").lower()
         s_car = approach_states.get("south", "red").lower()
         e_car = approach_states.get("east", "red").lower()
         w_car = approach_states.get("west", "red").lower()
 
-        # Crossing across North approach is Green only when North traffic is stopped on Red
-        chars[16] = "G" if "red" in n_car else "r"
-        # Crossing across East approach is Green only when East traffic is stopped on Red
-        chars[17] = "G" if "red" in e_car else "r"
-        # Crossing across South approach is Green only when South traffic is stopped on Red
-        chars[18] = "G" if "red" in s_car else "r"
-        # Crossing across West approach is Green only when West traffic is stopped on Red
-        chars[19] = "G" if "red" in w_car else "r"
+        if active_ped_approaches is not None:
+            chars[16] = "G" if ("north" in active_ped_approaches and "red" in n_car) else "r"
+            chars[17] = "G" if ("east" in active_ped_approaches and "red" in e_car) else "r"
+            chars[18] = "G" if ("south" in active_ped_approaches and "red" in s_car) else "r"
+            chars[19] = "G" if ("west" in active_ped_approaches and "red" in w_car) else "r"
+        else:
+            # Default / test backward-compatibility fallback
+            chars[16] = "G" if "red" in n_car else "r"
+            chars[17] = "G" if "red" in e_car else "r"
+            chars[18] = "G" if "red" in s_car else "r"
+            chars[19] = "G" if "red" in w_car else "r"
 
         return "".join(chars)
 
-    def apply_signals(self, approach_states: Dict[str, str]) -> bool:
+    def apply_signals(self, approach_states: Dict[str, str], active_ped_approaches: Optional[Set[str]] = None) -> bool:
         """
         Sends the translated 20-link signal state to SUMO via TraCI.
         Safe no-op if simulation is not currently running.
         """
-        state_str = self.build_state_string(approach_states)
+        state_str = self.build_state_string(approach_states, active_ped_approaches)
 
         if not self.conn.is_connected() or traci is None:
             self.last_approach_states = approach_states

@@ -96,5 +96,29 @@ class TestPedestrianCrossingStop(unittest.TestCase):
             mock_traci.vehicle.setSpeed.assert_any_call("veh3", -1.0)
             self.assertEqual(len(self.manager._ped_stopped_vehicles), 0)
 
+    def test_no_pedestrian_request_leaves_traffic_untouched(self):
+        """
+        Confirms that when NO pedestrian button has been clicked:
+        1. Pedestrian red is inactive.
+        2. Vehicles are not stopped or slowed down.
+        3. Crossing signals remain red ('r') without injecting 10s intervals.
+        """
+        now = time.time()
+        self.assertFalse(self.safety.is_pedestrian_red_active(now))
+        self.assertEqual(len(self.safety.active_pedestrian_approaches), 0)
+
+        mock_traci = MagicMock()
+        with patch.dict("sys.modules", {"traci": mock_traci}):
+            self.manager.conn.is_connected = MagicMock(return_value=True)
+            self.manager._apply_pedestrian_crossing_stops()
+            mock_traci.vehicle.slowDown.assert_not_called()
+            mock_traci.vehicle.setSpeed.assert_not_called()
+
+        # Check traffic adapter state string with no active pedestrian requests
+        states = {"north": "green", "south": "green", "east": "red", "west": "red"}
+        state_str = self.manager.traffic_adapter.build_state_string(states, active_ped_approaches=set())
+        # Crossings (indices 16..19) must all be 'r' (no walk signal unless requested)
+        self.assertEqual(state_str[16:], "rrrr")
+
 if __name__ == '__main__':
     unittest.main()
