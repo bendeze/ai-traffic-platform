@@ -2,7 +2,7 @@ import os
 import time
 import asyncio
 import threading
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Set
 
 from simulation.sumo.environment import sumo_env
 from simulation.sumo.connection import sumo_conn, SumoConnection
@@ -16,6 +16,16 @@ class SUMOManager:
     Orchestrates connection lifecycle, closed-loop perception feeding,
     FSM signal enforcement, emergency vehicle injection, and telemetry reporting.
     """
+
+    # Incoming approach stopline configurations for pedestrian crosswalks
+    # In Kigali/Rwanda driving standards, vehicles yield ~2m before the zebra crossing line
+    # (Zebra lines at 177.60m on all 4 incoming edges; stopline set at 175.50m)
+    CROSSING_STOP_CONFIG = {
+        "north": {"edge": "north_in", "stop_pos": 175.5},
+        "south": {"edge": "south_in", "stop_pos": 175.5},
+        "east":  {"edge": "east_in",  "stop_pos": 175.5},
+        "west":  {"edge": "west_in",  "stop_pos": 175.5},
+    }
 
     def __init__(self, settings=None):
         self.settings = settings
@@ -36,6 +46,9 @@ class SUMOManager:
         self._stop_event = threading.Event()
         self._pause_event = threading.Event()
         self._pause_event.set()  # Unpaused initially
+
+        # Tracks vehicle IDs halted at pedestrian crossings to release them upon phase completion
+        self._ped_stopped_vehicles: Set[str] = set()
 
         # References to external FSM, SafetyManager, and AppState
         self.fsm_engine = None
@@ -90,6 +103,7 @@ class SUMOManager:
         self.is_paused = False
         self._stop_event.set()
         self._pause_event.set()
+        self._ped_stopped_vehicles.clear()
 
         if self._sim_thread and self._sim_thread.is_alive():
             self._sim_thread.join(timeout=1.5)
@@ -103,6 +117,7 @@ class SUMOManager:
         If TraCI is active, uses in-process traci.load() to instantly reload scenario.
         Otherwise falls back to stop/start.
         """
+        self._ped_stopped_vehicles.clear()
         if self.is_running and self.conn.is_connected():
             was_paused = self.is_paused
             self._pause_event.clear()  # Temporarily pause background stepping thread
@@ -218,6 +233,9 @@ class SUMOManager:
                     current_signals = self.safety_manager.get_approach_states()
                     self.traffic_adapter.apply_signals(current_signals)
 
+                # 4. Enforce smooth deceleration & vehicle stopping at pedestrian crossings
+                self._apply_pedestrian_crossing_stops()
+
             except Exception as e:
                 # Connection broken or process exited
                 break
@@ -228,6 +246,104 @@ class SUMOManager:
 
         self.is_running = False
         self.conn.stop()
+
+    def _apply_pedestrian_crossing_stops(self):
+        """
+        Monitors active pedestrian crosswalk requests.
+        When pedestrians are crossing an approach:
+        - Vehicles approaching the zebra crossing lines smoothly decelerate and stop ~2m before the crossing (stop_pos = 175.5m).
+        - Emergency vehicles (ambulances) maintain immediate preemption priority and are never stopped.
+        - Once the pedestrian crossing phase expires (10 seconds), all stopped vehicles are automatically resumed
+          via traci.vehicle.setSpeed(vid, -1.0) to proceed through the intersection under normal autonomous control.
+        """
+        if not self.conn.is_connected():
+            return
+
+        try:
+            import traci
+            traci.switch(self.conn._traci_label)
+        except Exception:
+            return
+
+        now = time.time()
+        is_ped_active = False
+        if self.safety_manager:
+            is_ped_active = self.safety_manager.is_pedestrian_red_active(now)
+
+        # If pedestrian crossing phase is NOT active, release any previously held vehicles
+        if not is_ped_active:
+            if self._ped_stopped_vehicles:
+                try:
+                    active_ids = set(traci.vehicle.getIDList())
+                    for vid in self._ped_stopped_vehicles:
+                        if vid in active_ids:
+                            traci.vehicle.setSpeed(vid, -1.0)
+                except Exception:
+                    pass
+                self._ped_stopped_vehicles.clear()
+            return
+
+        # Pedestrian crossing is active: identify active approach(es)
+        active_approaches = set()
+        if self.safety_manager:
+            if hasattr(self.safety_manager, "active_pedestrian_approaches") and self.safety_manager.active_pedestrian_approaches:
+                active_approaches.update(self.safety_manager.active_pedestrian_approaches)
+            elif hasattr(self.safety_manager, "pedestrian_approach") and self.safety_manager.pedestrian_approach:
+                active_approaches.add(self.safety_manager.pedestrian_approach)
+
+        if self.fsm_engine and getattr(self.fsm_engine, "last_pedestrian_approach", None):
+            active_approaches.add(self.fsm_engine.last_pedestrian_approach.lower())
+
+        if not active_approaches and self.safety_manager and self.safety_manager.pedestrian_red_phase:
+            phase_apps = self.safety_manager.settings.phases.get(self.safety_manager.pedestrian_red_phase, [])
+            active_approaches.update([a.lower() for a in phase_apps])
+
+        for app in active_approaches:
+            cfg = self.CROSSING_STOP_CONFIG.get(app)
+            if not cfg:
+                continue
+            edge_id = cfg["edge"]
+            stop_pos = cfg["stop_pos"]
+
+            try:
+                edge_vehs = traci.edge.getLastStepVehicleIDs(edge_id)
+            except Exception:
+                continue
+
+            for vid in edge_vehs:
+                try:
+                    # Skip emergency ambulances - maintain preemption
+                    if traci.vehicle.getTypeID(vid) == "emergency_ambulance":
+                        continue
+
+                    vpos = traci.vehicle.getLanePosition(vid)
+                    vspeed = traci.vehicle.getSpeed(vid)
+                    dist = stop_pos - vpos
+
+                    # Vehicle has already crossed beyond the stop line
+                    if dist < 0:
+                        continue
+
+                    # Multi-tier smooth deceleration profile:
+                    if dist <= 6.0:
+                        # Full stop right before zebra crossing (~2m before)
+                        if vspeed < 0.3:
+                            traci.vehicle.setSpeed(vid, 0.0)
+                        else:
+                            traci.vehicle.slowDown(vid, 0.0, 0.8)
+                        self._ped_stopped_vehicles.add(vid)
+                    elif dist <= 20.0:
+                        # Close approach deceleration
+                        target_spd = min(vspeed, 2.5)
+                        traci.vehicle.slowDown(vid, target_spd, 1.2)
+                        self._ped_stopped_vehicles.add(vid)
+                    elif dist <= 50.0:
+                        # Early warning deceleration
+                        target_spd = min(vspeed, 5.5)
+                        traci.vehicle.slowDown(vid, target_spd, 2.0)
+                        self._ped_stopped_vehicles.add(vid)
+                except Exception:
+                    continue
 
     def get_telemetry(self) -> Dict[str, Any]:
         """Provides structured telemetry for WebSocket broadcast and API."""

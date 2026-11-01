@@ -16,6 +16,8 @@ async def ped_request(approach: str, state: AppState = Depends(get_app_state)):
     # If already active for this phase, return early without extending or doubling the timer
     now = time.time()
     if state.safety.is_pedestrian_red_active(now) and state.safety.pedestrian_red_phase == target_red_phase:
+        if hasattr(state.safety, "active_pedestrian_approaches"):
+            state.safety.active_pedestrian_approaches.add(approach.lower())
         return {
             "status": "already_active",
             "requested": approach,

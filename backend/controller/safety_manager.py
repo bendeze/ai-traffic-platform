@@ -1,6 +1,6 @@
 import time
 from enum import Enum
-from typing import Optional, Callable
+from typing import Optional, Callable, Set, Dict, List
 
 class SignalState(Enum):
     GREEN     = "green"
@@ -41,6 +41,8 @@ class SafetyManager:
         # Pedestrian 10s RED hold: forces the requested road's phase to RED for 10s immediately
         self.pedestrian_red_phase: Optional[str] = None
         self.pedestrian_red_until: float = 0.0
+        self.pedestrian_approach: Optional[str] = None
+        self.active_pedestrian_approaches: Set[str] = set()
 
     def is_pedestrian_red_active(self, now: Optional[float] = None) -> bool:
         if now is None:
@@ -59,6 +61,8 @@ class SafetyManager:
 
         self.pedestrian_red_phase = target_red_phase
         self.pedestrian_red_until = now + duration
+        self.pedestrian_approach = approach.lower()
+        self.active_pedestrian_approaches.add(approach.lower())
 
         self.current_phase = green_phase
         self.signal_state = SignalState.GREEN
@@ -84,6 +88,8 @@ class SafetyManager:
         elif self.pedestrian_red_phase:
             # 10s RED period expired; clear and resume standard flow
             self.pedestrian_red_phase = None
+            self.pedestrian_approach = None
+            self.active_pedestrian_approaches.clear()
             self._is_pedestrian_transition = False
             self._phase_start = now
             self.remaining_green = float(self.settings.timing.min_green)

@@ -12,7 +12,7 @@ class TestSUMOTrafficAdapter(unittest.TestCase):
     """
     Stage 4 Test Suite:
     Verifies that the SUMOTrafficAdapter accurately converts FSM/SafetyManager
-    approach signals into verified 16-link TraCI states, and that SUMO
+    approach signals into verified 20-link TraCI states, and that SUMO
     actually receives and adopts the exact state strings.
     """
 
@@ -38,26 +38,28 @@ class TestSUMOTrafficAdapter(unittest.TestCase):
     def test_02_phase_a_green_state_string(self):
         # Phase A: North & South Green, East & West Red
         # North (0..3) = G, East (4..7) = r, South (8..11) = G, West (12..15) = r
+        # Crossings (16..19): North(r), East(G), South(r), West(G) -> rGrG
         states = {"north": "green", "south": "green", "east": "red", "west": "red"}
-        expected = "GGGG" + "rrrr" + "GGGG" + "rrrr"
+        expected = "GGGG" + "rrrr" + "GGGG" + "rrrr" + "rGrG"
         self.assertEqual(self.adapter.build_state_string(states), expected)
 
     def test_03_four_way_yellow_state_string(self):
         # Standard safety transition: all 4 approaches show YELLOW simultaneously
         states = {"north": "yellow", "south": "yellow", "east": "yellow", "west": "yellow"}
-        expected = "y" * 16
+        expected = "y" * 16 + "rrrr"
         self.assertEqual(self.adapter.build_state_string(states), expected)
 
     def test_04_all_red_clearance_state_string(self):
-        # All-red clearance: all approaches stopped
+        # All-red clearance: all approaches stopped (crossings are Green)
         states = {"north": "red", "south": "red", "east": "red", "west": "red"}
-        expected = "r" * 16
+        expected = "r" * 16 + "GGGG"
         self.assertEqual(self.adapter.build_state_string(states), expected)
 
     def test_05_phase_b_green_state_string(self):
         # Phase B: East & West Green, North & South Red
+        # Crossings (16..19): North(G), East(r), South(G), West(r) -> GrGr
         states = {"north": "red", "south": "red", "east": "green", "west": "green"}
-        expected = "rrrr" + "GGGG" + "rrrr" + "GGGG"
+        expected = "rrrr" + "GGGG" + "rrrr" + "GGGG" + "GrGr"
         self.assertEqual(self.adapter.build_state_string(states), expected)
 
     def test_06_live_traci_state_adoption(self):
@@ -76,28 +78,28 @@ class TestSUMOTrafficAdapter(unittest.TestCase):
             state_a = {"north": "green", "south": "green", "east": "red", "west": "red"}
             self.assertTrue(self.adapter.apply_signals(state_a))
             read_back = traci.trafficlight.getRedYellowGreenState("center")
-            self.assertEqual(read_back, "GGGGrrrrGGGGrrrr")
+            self.assertEqual(read_back, "GGGGrrrrGGGGrrrrrGrG")
 
             # 2. Advance 1 step and apply 4-Way Yellow
             self.conn.step()
             state_y = {"north": "yellow", "south": "yellow", "east": "yellow", "west": "yellow"}
             self.assertTrue(self.adapter.apply_signals(state_y))
             read_back = traci.trafficlight.getRedYellowGreenState("center")
-            self.assertEqual(read_back, "yyyyyyyyyyyyyyyy")
+            self.assertEqual(read_back, "yyyyyyyyyyyyyyyyrrrr")
 
             # 3. Advance 1 step and apply All-Red Clearance
             self.conn.step()
             state_clear = {"north": "red", "south": "red", "east": "red", "west": "red"}
             self.assertTrue(self.adapter.apply_signals(state_clear))
             read_back = traci.trafficlight.getRedYellowGreenState("center")
-            self.assertEqual(read_back, "rrrrrrrrrrrrrrrr")
+            self.assertEqual(read_back, "rrrrrrrrrrrrrrrrGGGG")
 
             # 4. Advance 1 step and apply Phase B Green
             self.conn.step()
             state_b = {"north": "red", "south": "red", "east": "green", "west": "green"}
             self.assertTrue(self.adapter.apply_signals(state_b))
             read_back = traci.trafficlight.getRedYellowGreenState("center")
-            self.assertEqual(read_back, "rrrrGGGGrrrrGGGG")
+            self.assertEqual(read_back, "rrrrGGGGrrrrGGGGGrGr")
 
         finally:
             self.conn.stop()
@@ -105,4 +107,3 @@ class TestSUMOTrafficAdapter(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
