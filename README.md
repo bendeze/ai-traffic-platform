@@ -100,34 +100,37 @@ Physical breadboard setup with 12 external LEDs (Red, Yellow, Green for North, S
 
 ```mermaid
 flowchart TD
-    subgraph INGESTION ["Perception & Simulation Ingestion"]
+    subgraph INGESTION ["Step 1: Input Sources (Vehicle Counting & Detection)"]
         direction TB
-        CAM["Live Video Stream / MP4 Upload"] --> YOLO["YOLOv8 Perception Pipeline"]
-        YOLO --> ROI["Spatial ROI Polygon Assigner\n(North, South, East, West)"]
-        SUMO["Eclipse SUMO Simulation\n(Microscopic Traffic Engine)"] --> TRACI["TraCI Perception Adapter\n(10 Hz Sync Loop)"]
+        CAM["Live Camera Stream or Uploaded Video"] --> YOLO["YOLOv8 Computer Vision\n• Detects cars, buses, trucks, motorcycles, bicycles\n• Identifies emergency ambulances"]
+        YOLO --> ROI["Camera Approach Counter\n• Counts vehicles waiting in North, South, East, West\n• Measures waiting times"]
+        
+        SUMO["Eclipse SUMO Traffic Simulation\n• Real-world microscopic traffic engine\n• Spawns virtual traffic & ambulances"] --> TRACI["TraCI Simulation Sensor Adapter\n• Counts every simulated vehicle per road\n• Measures exact queue lengths & waiting times\n• Ingests simulated emergency vehicles"]
     end
 
-    subgraph CORE ["Authoritative Core Controller (FastAPI Backend)"]
+    subgraph CORE ["Step 2: AI Brain & Safety Interlock (FastAPI Backend)"]
         direction TB
-        EST["Traffic State Estimator\n- Queue length integration\n- Waiting time accumulation\n- Multi-class breakdown"]
-        DEC["Adaptive Decision Engine\n- Vehicle demand scoring\n- Anti-starvation fair caps\n- Emergency vehicle priority\n- Actuated pedestrian logic"]
-        SAFE["Safety Manager (FSM Hardware Interlock)\n- Invariant: Conflicting greens impossible\n- 4-way yellow transition (3s)\n- All-red clearance (1s)\n- Pedestrian 10s RED hold\n- Ambulance green extension"]
+        EST["Traffic State Estimator\n• Collects live vehicle counts from Camera or SUMO\n• Calculates total queue pressure per road"]
         
-        ROI --> EST
-        TRACI --> EST
+        DEC["AI Decision Engine\n• Gives more green time to roads with more vehicles\n• Anti-Starvation: Guarantees green time to waiting roads\n• Instantly prioritizes emergency ambulances\n• Activates on-demand pedestrian crossing locks"]
+        
+        SAFE["Safety Manager (Hardware Interlock)\n• Rule 1: Conflicting greens are mathematically impossible\n• Rule 2: Always gives 3 seconds Yellow warning\n• Rule 3: Always gives 1 second All-Red Clearance\n• Rule 4: Holds 10 seconds Red when pedestrian requests"]
+        
+        ROI -->|"Live real-world vehicle counts"| EST
+        TRACI -->|"Live simulated vehicle counts"| EST
         EST --> DEC
         DEC --> SAFE
     end
 
-    subgraph ACTUATION ["Actuation & Output Targets"]
+    subgraph ACTUATION ["Step 3: Outputs & Controls"]
         direction TB
-        SAFE --> SIM_ADAPT["SUMO Traffic Adapter\n(20-Link Verified Junction Map)"]
-        SAFE --> SERIAL["Serial Manager\n(Non-blocking background thread)"]
-        SAFE --> WS["WebSocket Telemetry Broadcaster\n(~3.3 Hz Push Stream)"]
+        SAFE --> SIM_ADAPT["SUMO Traffic Adapter\n• Controls 20 traffic light links in simulation\n• Controls 4 pedestrian walk signals"]
+        SAFE --> SERIAL["Serial Manager\n• Sends JSON packets to Arduino USB"]
+        SAFE --> WS["WebSocket Broadcaster\n• Pushes real-time data to dashboard (3.3 Hz)"]
         
-        SIM_ADAPT --> SUMO_NET["SUMO Simulated Vehicles & Crossing Signals"]
-        SERIAL --> ARDUINO["Arduino Nano 33 BLE\n(12 Physical LEDs + Watchdog)"]
-        WS --> UI["React + TypeScript Web Dashboard\n(Real-Time Analytics & Controls)"]
+        SIM_ADAPT --> SUMO_NET["SUMO Simulated Vehicles & Pedestrian Signals"]
+        SERIAL --> ARDUINO["Arduino Nano 33 BLE\n• Lights up 12 physical LEDs\n• Built-in 6-second safety watchdog"]
+        WS --> UI["Web Dashboard (React + TypeScript)\n• Live camera & simulation monitor\n• 4-way traffic lights with countdown timers\n• Emergency & pedestrian control buttons"]
     end
 
     classDef coreStyle fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;

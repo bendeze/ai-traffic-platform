@@ -1,41 +1,46 @@
 # System Architecture & Technical Design
 
-The **AI Traffic Management Platform** is engineered as a robust, low-latency, modular distributed system designed for intersection control. It combines edge computer vision, microscopic simulation feedback, state-machine safety interlocks, and physical microcontroller actuation.
+The **AI Traffic Management Platform** is designed to be simple, reliable, and modular. It manages a 4-way intersection by combining real-time camera vision, traffic simulation, an authoritative safety controller, and physical LED hardware.
 
 ---
 
-## High-Level System Architecture
+## 1. High-Level System Architecture
+
+Both the camera and the simulation count vehicles in real time. These vehicle counts are sent to the AI Decision Engine to calculate the smartest green light timings.
 
 ```mermaid
 flowchart TD
-    subgraph INGESTION ["Perception & Simulation Sources"]
+    subgraph INGESTION ["Step 1: Input Sources (Vehicle Counting & Detection)"]
         direction TB
-        CAM["Live Video Stream / MP4 Upload"] --> YOLO["YOLOv8 Perception Pipeline"]
-        YOLO --> ROI["Spatial ROI Polygon Assigner\n(North, South, East, West)"]
-        SUMO["Eclipse SUMO Simulation\n(Microscopic Traffic Engine)"] --> TRACI["TraCI Perception Adapter\n(10 Hz Sync Loop)"]
+        CAM["Live Camera Stream or Uploaded Video"] --> YOLO["YOLOv8 Computer Vision\n• Detects cars, buses, trucks, motorcycles, bicycles\n• Identifies emergency ambulances"]
+        YOLO --> ROI["Camera Approach Counter\n• Counts vehicles waiting in North, South, East, West\n• Measures waiting times"]
+        
+        SUMO["Eclipse SUMO Traffic Simulation\n• Real-world microscopic traffic engine\n• Spawns virtual traffic & ambulances"] --> TRACI["TraCI Simulation Sensor Adapter\n• Counts every simulated vehicle per road\n• Measures exact queue lengths & waiting times\n• Ingests simulated emergency vehicles"]
     end
 
-    subgraph CORE ["Authoritative Core Controller (FastAPI Backend)"]
+    subgraph CORE ["Step 2: AI Brain & Safety Interlock (FastAPI Backend)"]
         direction TB
-        EST["Traffic State Estimator\n- Queue length integration\n- Waiting time accumulation\n- Multi-class breakdown"]
-        DEC["Adaptive Decision Engine\n- Vehicle demand scoring\n- Anti-starvation fair caps\n- Emergency vehicle priority\n- Actuated pedestrian logic"]
-        SAFE["Safety Manager (FSM Hardware Interlock)\n- Invariant: Conflicting greens impossible\n- 4-way yellow transition (3s)\n- All-red clearance (1s)\n- Pedestrian 10s RED hold\n- Ambulance green extension"]
+        EST["Traffic State Estimator\n• Collects live vehicle counts from Camera or SUMO\n• Calculates total queue pressure per road"]
         
-        ROI --> EST
-        TRACI --> EST
+        DEC["AI Decision Engine\n• Gives more green time to roads with more vehicles\n• Anti-Starvation: Guarantees green time to waiting roads\n• Instantly prioritizes emergency ambulances\n• Activates on-demand pedestrian crossing locks"]
+        
+        SAFE["Safety Manager (Hardware Interlock)\n• Rule 1: Conflicting greens are mathematically impossible\n• Rule 2: Always gives 3 seconds Yellow warning\n• Rule 3: Always gives 1 second All-Red Clearance\n• Rule 4: Holds 10 seconds Red when pedestrian requests"]
+        
+        ROI -->|"Live real-world vehicle counts"| EST
+        TRACI -->|"Live simulated vehicle counts"| EST
         EST --> DEC
         DEC --> SAFE
     end
 
-    subgraph ACTUATION ["Actuation & Output Targets"]
+    subgraph ACTUATION ["Step 3: Outputs & Controls"]
         direction TB
-        SAFE --> SIM_ADAPT["SUMO Traffic Adapter\n(20-Link Verified Junction Map)"]
-        SAFE --> SERIAL["Serial Manager\n(Non-blocking background thread)"]
-        SAFE --> WS["WebSocket Telemetry Broadcaster\n(~3.3 Hz Push Stream)"]
+        SAFE --> SIM_ADAPT["SUMO Traffic Adapter\n• Controls 20 traffic light links in simulation\n• Controls 4 pedestrian walk signals"]
+        SAFE --> SERIAL["Serial Manager\n• Sends JSON packets to Arduino USB"]
+        SAFE --> WS["WebSocket Broadcaster\n• Pushes real-time data to dashboard (3.3 Hz)"]
         
-        SIM_ADAPT --> SUMO_NET["SUMO Simulated Vehicles & Crossing Signals"]
-        SERIAL --> ARDUINO["Arduino Nano 33 BLE\n(12 Physical LEDs + Watchdog)"]
-        WS --> UI["React + TypeScript Web Dashboard\n(Real-Time Analytics & Controls)"]
+        SIM_ADAPT --> SUMO_NET["SUMO Simulated Vehicles & Pedestrian Signals"]
+        SERIAL --> ARDUINO["Arduino Nano 33 BLE\n• Lights up 12 physical LEDs\n• Built-in 6-second safety watchdog"]
+        WS --> UI["Web Dashboard (React + TypeScript)\n• Live camera & simulation monitor\n• 4-way traffic lights with countdown timers\n• Emergency & pedestrian control buttons"]
     end
 
     classDef coreStyle fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
@@ -49,157 +54,143 @@ flowchart TD
 
 ---
 
-## 🛡️ Finite State Machine (FSM) Safety Interlock
+## 2. Finite State Machine (FSM) Safety Interlock
 
-The traffic signal lifecycle is strictly governed by [`SafetyManager`](../backend/controller/safety_manager.py). No transition between conflicting phases is ever permitted without traversing the mandatory clearance sequence.
+The traffic light state machine is strictly controlled by [`SafetyManager`](../backend/controller/safety_manager.py). Green lights for conflicting roads can never happen at the same time. The signals always move through a mandatory yellow and all-red clearance interval before switching.
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Phase_A_Green: Initialization
+flowchart TD
+    START([System Startup]) --> PHASE_A
 
-    state Phase_A_Green {
-        North_South: GREEN (Moving)
-        East_West: RED (Waiting)
-        Crossings: RED (Don't Walk)
-    }
+    subgraph PHASE_A ["PHASE A: North & South Moving"]
+        direction TB
+        A1["North & South: GREEN (Proceed)"]
+        A2["East & West: RED (Stopped)"]
+        A3["Pedestrian Crossings: RED (Don't Walk)"]
+    end
 
-    state Phase_B_Green {
-        East_West: GREEN (Moving)
-        North_South: RED (Waiting)
-        Crossings: RED (Don't Walk)
-    }
+    subgraph YELLOW_TRANS ["YELLOW WARNING (3.0 Seconds)"]
+        direction TB
+        Y1["Moving Approaches: YELLOW (Prepare to stop)"]
+        Y2["Non-moving Approaches: RED (Remain stopped)"]
+    end
 
-    state Yellow_Transition {
-        Standard: All 4 approaches YELLOW (3s)
-        Pedestrian_Req: Active phase YELLOW (3s)
-    }
+    subgraph CLEARANCE ["ALL-RED CLEARANCE (1.0 Second)"]
+        direction TB
+        C1["ALL 4 Approaches: RED (Intersection box clears)"]
+    end
 
-    state All_Red_Clearance {
-        All_Approaches: RED (1s)
-        Intersection_Cleared: Vehicles vacate junction box
-    }
+    subgraph PHASE_B ["PHASE B: East & West Moving"]
+        direction TB
+        B1["East & West: GREEN (Proceed)"]
+        B2["North & South: RED (Stopped)"]
+        B3["Pedestrian Crossings: RED (Don't Walk)"]
+    end
 
-    state Pedestrian_Lock {
-        Requested_Road: LOCKED ON RED (10s)
-        Conflicting_Phase: GREEN (or Clearance)
-        Crosswalk: GREEN (Walk signal active)
-        Vehicles: Halt ~2m before zebra crossing (175.5m)
-    }
+    subgraph PED_LOCK ["PEDESTRIAN CROSSING (10.0 Seconds)"]
+        direction TB
+        P1["Requested Road: RED (Vehicles stop ~2m before zebra line)"]
+        P2["Pedestrian Walk Signal: GREEN (Walk)"]
+    end
 
-    state Emergency_Preemption {
-        Ambulance_Approach: IMMEDIATE GREEN
-        Other_Approaches: RED
-        Crossings: RED
-        Hold_Active: Stays green until ambulance clears road
-    }
+    subgraph AMB_LOCK ["AMBULANCE PREEMPTION"]
+        direction TB
+        E1["Ambulance Road: LOCKED ON GREEN"]
+        E2["Conflicting Roads: LOCKED ON RED"]
+        E3["Holds until ambulance passes intersection"]
+    end
 
-    Phase_A_Green --> Yellow_Transition: Timer expired or dynamic transition
-    Yellow_Transition --> All_Red_Clearance: Yellow elapsed (3s)
-    All_Red_Clearance --> Phase_B_Green: Clearance elapsed (1s)
+    PHASE_A -->|"Normal Timer Expired or Demand on B"| YELLOW_TRANS
+    YELLOW_TRANS -->|"3 seconds done"| CLEARANCE
+    CLEARANCE -->|"1 second done"| PHASE_B
 
-    Phase_B_Green --> Yellow_Transition: Timer expired or dynamic transition
-    Yellow_Transition --> All_Red_Clearance: Yellow elapsed (3s)
-    All_Red_Clearance --> Phase_A_Green: Clearance elapsed (1s)
+    PHASE_B -->|"Normal Timer Expired or Demand on A"| YELLOW_TRANS
+    YELLOW_TRANS -->|"3 seconds done"| CLEARANCE
+    CLEARANCE -->|"1 second done"| PHASE_A
 
-    Phase_A_Green --> Pedestrian_Lock: Pedestrian button clicked on North or South
-    Phase_B_Green --> Pedestrian_Lock: Pedestrian button clicked on East or West
-    Pedestrian_Lock --> Yellow_Transition: 10s timer expires (Auto-resumes traffic)
+    PHASE_A -->|"Pedestrian Button Clicked (North or South)"| PED_LOCK
+    PHASE_B -->|"Pedestrian Button Clicked (East or West)"| PED_LOCK
+    PED_LOCK -->|"10 seconds done (Auto-Resume)"| YELLOW_TRANS
 
-    Phase_A_Green --> Emergency_Preemption: Ambulance detected on East or West
-    Phase_B_Green --> Emergency_Preemption: Ambulance detected on North or South
-    Emergency_Preemption --> All_Red_Clearance: Ambulance clears junction
+    PHASE_A -->|"Ambulance Detected on East or West"| AMB_LOCK
+    PHASE_B -->|"Ambulance Detected on North or South"| AMB_LOCK
+    AMB_LOCK -->|"Ambulance leaves intersection"| CLEARANCE
 ```
 
 ---
 
-## 🔄 Closed-Loop SUMO Microscopic Simulation Sequence
+## 3. How Simulation Works (TraCI Closed-Loop Sequence)
 
-In Simulation Mode, the backend interacts synchronously with Eclipse SUMO via the TraCI socket protocol:
+In simulation mode, the system communicates with Eclipse SUMO every 100 milliseconds (10 times per second):
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant UI as React Web Dashboard
+    participant UI as Web Dashboard
     participant Backend as FastAPI Server
-    participant Safety as SafetyManager (FSM)
-    participant Manager as SUMOManager
-    participant TraCI as TraCI Interface
+    participant Safety as Safety Manager
     participant SUMO as Eclipse SUMO Engine
 
-    UI->>Backend: POST /simulation/sumo/start
-    Backend->>Manager: start_simulation(gui=False, speed=1.0)
-    Manager->>TraCI: traci.start(sumoConfig, stepLength=0.1)
-    TraCI->>SUMO: Spawn intersection scenario
+    UI->>Backend: User clicks "Start Simulation"
+    Backend->>SUMO: Launch intersection scenario via TraCI
 
-    loop Every 100ms (10 Hz Step Loop)
-        Manager->>TraCI: traci.simulationStep()
-        SUMO-->>TraCI: Returns vehicle positions, speeds, queues
-        Manager->>Backend: Ingest approach vehicle counts & ambulances
-        Backend->>Safety: Evaluate demand & update FSM
-        Safety-->>Manager: Authoritative approach signals
-        Manager->>TraCI: traci.trafficlight.setRedYellowGreenState(20-link state)
+    loop Every 100ms (10 times per second)
+        Backend->>SUMO: Advance simulation by 0.1s
+        SUMO-->>Backend: Return vehicle positions, counts, and speeds
+        Note over Backend: Count vehicles and queues on North, South, East, West
+        Backend->>Safety: Calculate demand scores & update light states
+        Safety-->>SUMO: Apply 20-link traffic light states (Green, Yellow, Red)
         
         alt Pedestrian Button Clicked
-            Manager->>TraCI: traci.vehicle.slowDown(vid, 0.0, 0.8) at stop_pos=175.5m
-            Note over TraCI,SUMO: Vehicles decelerate & halt ~2m before zebra crossing
+            Backend->>SUMO: Command approaching cars to stop ~2m before zebra line
+            Note over SUMO: Cars smoothly slow down and stop at 175.5m
         end
 
-        Manager->>Backend: Sample metrics & telemetry snapshot
-        Backend-->>UI: WebSocket broadcast (telemetry JSON)
+        Backend-->>UI: Send live telemetry snapshot over WebSocket
     end
 
-    alt 10-Second Pedestrian Phase Finished
-        Manager->>TraCI: traci.vehicle.setSpeed(vid, -1.0)
-        Note over TraCI,SUMO: Stopped vehicles released to resume autonomous flow
+    alt Pedestrian 10s Timer Finishes
+        Backend->>SUMO: Release stopped vehicles (setSpeed -1.0)
+        Note over SUMO: Cars automatically resume normal speed limit
     end
 ```
 
 ---
 
-## ⚡ Hardware Microcontroller Serial Communication Loop
+## 4. Hardware Communication & Failsafe Watchdog
 
-The backend communicates with the physical Arduino controller over an asynchronous non-blocking serial channel:
+The backend communicates with the physical Arduino controller over a USB serial connection at 9600 baud:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Engine as Decision Engine / FSM
-    participant Worker as SerialManager Thread
-    participant OS as OS Serial Port (COM / tty)
+    participant Backend as AI Traffic Controller
+    participant Serial as Serial Worker Thread
     participant Arduino as Arduino Nano 33 BLE
     participant LEDs as 12 Physical LEDs
 
-    Engine->>Worker: send_signals(states, phase, duration)
-    Note over Worker: Rate-limit and state-diff check
-    Worker->>OS: Write JSON payload ("seq", "n", "s", "e", "w")\n
-    OS->>Arduino: Serial.readStringUntil('\n')
-    Arduino->>Arduino: Reset 6.0s watchdog timer
-    Arduino->>LEDs: Update digitalWrite(HIGH / LOW) across 12 pins
-    
-    alt Software Host Disconnects (> 6.0 seconds)
+    Backend->>Serial: New signal state or timer tick
+    Serial->>Arduino: Send JSON line: {"phase":"A", "dur":15, "n":"G", "s":"G", "e":"R", "w":"R"}
+    Arduino->>Arduino: Reset 6-second watchdog timer
+    Arduino->>LEDs: Update digital pins for 12 LEDs (Red, Yellow, Green)
+
+    alt Host Computer Disconnects (> 6 seconds)
         Note over Arduino: Watchdog Timer Expires!
-        Arduino->>LEDs: Trigger FAIL_SAFE Mode (All Yellow Blinking @ 1 Hz)
+        Arduino->>LEDs: Enter Failsafe Mode (All Yellow LEDs blink at 1 Hz)
     end
 ```
 
 ---
 
-## 🚦 Verified 20-Link SUMO Junction Mapping
+## 5. 20-Link Traffic Light Mapping for the 4-Way Intersection
 
-The intersection junction is mapped into 20 link indices for comprehensive vehicular and pedestrian control:
+The intersection traffic light controller (`center`) coordinates 20 distinct links:
 
-```mermaid
-flowchart LR
-    subgraph Junction_center ["20-Link Traffic Light Matrix ('center')"]
-        direction TB
-        V1["0..3: North Inflow (Lanes 1 & 2)"]
-        V2["4..7: East Inflow (Lanes 1 & 2)"]
-        V3["8..11: South Inflow (Lanes 1 & 2)"]
-        V4["12..15: West Inflow (Lanes 1 & 2)"]
-        P1["16: North Pedestrian Crossing (:center_c0)"]
-        P2["17: East Pedestrian Crossing (:center_c1)"]
-        P3["18: South Pedestrian Crossing (:center_c2)"]
-        P4["19: West Pedestrian Crossing (:center_c3)"]
-    end
-```
-
+- **Links 0 to 3:** North incoming vehicles (Left turn, Straight lanes, Right turn)
+- **Links 4 to 7:** East incoming vehicles (Left turn, Straight lanes, Right turn)
+- **Links 8 to 11:** South incoming vehicles (Left turn, Straight lanes, Right turn)
+- **Links 12 to 15:** West incoming vehicles (Left turn, Straight lanes, Right turn)
+- **Link 16:** North pedestrian zebra crossing (`:center_c0`)
+- **Link 17:** East pedestrian zebra crossing (`:center_c1`)
+- **Link 18:** South pedestrian zebra crossing (`:center_c2`)
+- **Link 19:** West pedestrian zebra crossing (`:center_c3`)
