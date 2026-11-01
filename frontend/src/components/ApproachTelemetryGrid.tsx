@@ -79,7 +79,7 @@ export default function ApproachTelemetryGrid({
 
               <button
                 onClick={() => requestPedestrian(app)}
-                className={`w-full py-1.5 text-xs font-mono font-bold tracking-wider cursor-pointer border transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
+                className={`w-full py-1.5 text-[9px] font-mono font-bold tracking-wider cursor-pointer border transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
                   isPedActive
                     ? 'bg-red-500 border-red-500 text-white'
                     : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-white'

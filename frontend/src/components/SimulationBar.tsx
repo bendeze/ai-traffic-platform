@@ -104,9 +104,6 @@ export default function SimulationBar({
         
         {/* State Badge */}
         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-zinc-300 dark:border-zinc-700 rounded-sm bg-zinc-50 dark:bg-zinc-900/60">
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            isSumoRunning ? (isSumoPaused ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-zinc-400 dark:bg-zinc-600'
-          }`} />
           <span className={`font-mono text-xs font-bold ${
             isSumoRunning 
               ? (isSumoPaused ? 'text-amber-500' : 'text-emerald-700 dark:text-emerald-400') 
@@ -172,7 +169,7 @@ export default function SimulationBar({
 
         {/* Speed Factor */}
         <div className="flex items-center gap-1 ml-1.5">
-          <span className="font-mono text-xs text-zinc-400">SPEED:</span>
+          <span className="font-mono text-xs text-zinc-400">Speed:</span>
           {[0.5, 1.0, 2.0, 3.0].map((spd) => (
             <button
               key={spd}
@@ -191,9 +188,9 @@ export default function SimulationBar({
 
       {/* Telemetry Stats */}
       <div className="font-mono text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-3">
-        <span>SIM TIME: <strong className="text-zinc-900 dark:text-white">{sumoTime.toFixed(1)}s</strong></span>
+        <span>Sim Time: <strong className="text-zinc-900 dark:text-white">{sumoTime.toFixed(1)}s</strong></span>
         <span className="text-zinc-400 dark:text-zinc-600">/</span>
-        <span>SIM VEHICLES: <strong className="text-emerald-700 dark:text-emerald-400">{sumoVehicleCount}</strong></span>
+        <span>Sim Vehicles: <strong className="text-emerald-700 dark:text-emerald-400">{sumoVehicleCount}</strong></span>
       </div>
     </div>
   );

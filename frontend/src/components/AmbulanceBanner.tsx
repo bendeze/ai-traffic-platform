@@ -9,10 +9,9 @@ export default function AmbulanceBanner({ activeAmbulance, clearAmbulance }: Amb
   if (!activeAmbulance) return null;
 
   return (
-    <div className="bg-red-950/80 border border-red-500 p-2.5 px-4 rounded mb-4 flex justify-between items-center animate-pulse">
+    <div className="bg-red-900/90 dark:bg-red-950/80 border border-red-500 p-2.5 px-4 rounded mb-4 flex justify-between items-center animate-pulse">
       <div className="flex items-center gap-2.5">
-        <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]" />
-        <span className="font-mono font-extrabold text-xs text-red-200 tracking-wide">
+        <span className="font-mono font-extrabold text-xs text-red-100 dark:text-red-200 tracking-wide">
           EMERGENCY VEHICLE PREEMPTION ACTIVE — APPROACH: {activeAmbulance.toUpperCase()}
         </span>
       </div>

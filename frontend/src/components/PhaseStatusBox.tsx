@@ -40,13 +40,13 @@ export default function PhaseStatusBox({
           <div className="font-mono text-xs text-zinc-500 dark:text-zinc-400 tracking-wider mb-1">
             ACTIVE PHASE
           </div>
-          <div className="text-5xl font-extrabold leading-none tracking-tight text-zinc-900 dark:text-white">
+          <div className="text-4xl font-extrabold leading-none tracking-tight text-zinc-900 dark:text-white">
             PHASE {currentPhase}
           </div>
           <div className="font-mono text-xs text-zinc-500 dark:text-zinc-400 mt-1.5">
-            {currentPhase === 'A' ? 'NORTH · SOUTH GREEN' : 'EAST · WEST GREEN'}
+            {currentPhase === 'A' ? 'North · South GREEN' : 'East · West GREEN'}
           </div>
-          <div className="font-mono text-[0.68rem] text-sky-600 dark:text-sky-400 mt-1.5 font-bold">
+          <div className="font-mono text-[0.68rem] text-sky-600 dark:text-sky-400 mt-1.5 font-bold lowercase">
             RULE: {reason.toUpperCase().replace(/_/g, ' ')}
           </div>
         </div>
@@ -57,19 +57,19 @@ export default function PhaseStatusBox({
             {/* RED BULB */}
             <div className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
               signalState === 'red'
-                ? 'bg-red-500 shadow-[0_0_10px_#ef4444]'
+                ? 'bg-red-500'
                 : 'bg-zinc-300 dark:bg-zinc-800'
             }`} />
             {/* YELLOW BULB */}
             <div className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
               signalState === 'yellow'
-                ? 'bg-amber-500 shadow-[0_0_10px_#f59e0b]'
+                ? 'bg-amber-500'
                 : 'bg-zinc-300 dark:bg-zinc-800'
             }`} />
             {/* GREEN BULB */}
             <div className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
               signalState === 'green'
-                ? 'bg-emerald-500 shadow-[0_0_10px_#22c55e]'
+                ? 'bg-emerald-500'
                 : 'bg-zinc-300 dark:bg-zinc-800'
             }`} />
           </div>
@@ -84,7 +84,7 @@ export default function PhaseStatusBox({
       <div className="grid grid-cols-2 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800">
         <button
           onClick={() => switchMode('adaptive')}
-          className={`py-2.5 font-mono text-xs font-bold tracking-wider cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
+          className={`py-1.5 font-mono text-xs font-bold tracking-wider cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
             mode === 'adaptive'
               ? 'bg-zinc-900 text-white dark:bg-white dark:text-black'
               : 'bg-white text-zinc-500 hover:text-zinc-900 dark:bg-black dark:text-zinc-400 dark:hover:text-white'
@@ -94,7 +94,7 @@ export default function PhaseStatusBox({
         </button>
         <button
           onClick={() => switchMode('manual')}
-          className={`py-2.5 font-mono text-xs font-bold tracking-wider cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
+          className={`py-1.5 font-mono text-xs font-bold tracking-wider cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white ${
             mode === 'manual'
               ? 'bg-zinc-900 text-white dark:bg-white dark:text-black'
               : 'bg-white text-zinc-500 hover:text-zinc-900 dark:bg-black dark:text-zinc-400 dark:hover:text-white'

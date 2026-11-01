@@ -119,33 +119,26 @@ export default function ManualLoopPanel({
         {!isLoopRunning ? (
           <button
             onClick={startManualLoop}
-            className="w-full btn-action bg-zinc-900 text-white dark:bg-white dark:text-black font-extrabold tracking-wider py-2.5 shadow-sm focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white"
+            className="w-full btn-action bg-zinc-900 text-white dark:bg-white dark:text-black font-extrabold tracking-wider py-1.5 shadow-sm focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white"
           >
             ▶ VALIDATE & START MANUAL LOOP ({manualA}s ➔ {manualB}s)
           </button>
         ) : (
-          <div className="grid grid-cols-[1.4fr_1fr] gap-2">
+          <div className="grid grid-cols-[1.4fr_1fr] gap-1">
             <button
               onClick={startManualLoop}
-              className="btn-action py-2 text-xs"
+              className="btn-action py-1 text-xs"
             >
               ↻ UPDATE LOOP ({manualA}s / {manualB}s)
             </button>
             <button
               onClick={stopManualLoop}
-              className="btn-action py-2 text-xs bg-red-100 border-red-400 text-red-600 hover:bg-red-200 dark:bg-red-950/60 dark:border-red-600 dark:text-red-300"
+              className="btn-action py-1 text-xs bg-red-100 border-red-400 text-red-600 hover:bg-red-200 dark:bg-red-950/60 dark:border-red-600 dark:text-red-300"
             >
               ⏹ PAUSE LOOP
             </button>
           </div>
         )}
-      </div>
-
-      {/* Hint Note */}
-      <div className="font-mono text-[0.65rem] p-1.5 px-2.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 text-center">
-        {isLoopRunning
-          ? `● MANUAL LOOP RUNNING (A: ${manualA}s / B: ${manualB}s) — ACTIVE TIMER WILL FINISH BEFORE NEW DURATIONS APPLY`
-          : `SET SECONDS FOR PHASE A AND B ABOVE, THEN CLICK VALIDATE TO START THE LOOP`}
       </div>
     </div>
   );
