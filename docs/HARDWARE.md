@@ -4,7 +4,7 @@ The **AI Traffic Management Platform** features direct physical actuation throug
 
 ---
 
-## 📌 Pinout & Wiring Specifications
+## Pinout & Wiring Specifications
 
 | Approach | Signal Color | Microcontroller Pin | Resistor | Function |
 | :--- | :--- | :--- | :--- | :--- |
@@ -25,7 +25,7 @@ The **AI Traffic Management Platform** features direct physical actuation throug
 
 ---
 
-## ⚡ Serial Communication Protocol
+## Serial Communication Protocol
 
 Baud rate: **`9600 baud`**, 8-N-1. Data is sent as single-line JSON terminating with `\n`.
 
@@ -45,3 +45,4 @@ Initiates sequential 12-LED diagnostic hardware test across all approaches:
 
 ### 3. Failsafe Watchdog
 If the Arduino loses connection with the backend for more than **6.0 seconds**, it automatically transitions into **`FAIL_SAFE`** mode (flashing all yellow signals at 1 Hz) to prevent intersection gridlock.
+

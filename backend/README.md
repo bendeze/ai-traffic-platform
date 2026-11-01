@@ -40,3 +40,4 @@ Interactive API documentation (Swagger) is available at:
 - **`simulation/sumo/`**:
   - `manager.py`: Closed-loop TraCI simulation manager with synchronous stepping and auto-preemption.
   - `scenario/`: 4-way intersection network, traffic demand routes, and viewsettings.
+
