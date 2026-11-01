@@ -17,3 +17,4 @@ If you have an idea of how to implement it (algorithm, UI component, hardware ci
 
 ## Alternatives Considered
 Any alternative solutions or workarounds you have considered.
+

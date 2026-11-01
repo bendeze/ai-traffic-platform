@@ -20,3 +20,4 @@ If you discover a security vulnerability or safety hazard within the **AI Traffi
    - Any proposed remediation or patch
 
 We will acknowledge receipt within 48 hours and work with you to test and release a security fix.
+

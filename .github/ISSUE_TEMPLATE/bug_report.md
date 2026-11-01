@@ -32,3 +32,4 @@ A clear description of what you expected to happen.
 
 ## Additional Context / Logs
 Attach relevant terminal logs or screenshots if applicable.
+
