@@ -15,11 +15,15 @@ class SUMOTrafficAdapter:
     - Never generates or decides signal states independently.
     - Strictly maps the authoritative output of SafetyManager (green, 4-way yellow,
       clearance all-red, emergency preemption, and pedestrian red locks).
-    - Verified 16-link junction mapping for 'center':
-        Indices 0..3:   North incoming (north_in_0, north_in_1)
-        Indices 4..7:   East incoming  (east_in_0,  east_in_1)
-        Indices 8..11:  South incoming (south_in_0, south_in_1)
-        Indices 12..15: West incoming  (west_in_0,  west_in_1)
+    - Verified 20-link junction mapping for 'center':
+        Indices 0..3:   North incoming vehicles (north_in_1, north_in_2)
+        Indices 4..7:   East incoming vehicles  (east_in_1,  east_in_2)
+        Indices 8..11:  South incoming vehicles (south_in_1, south_in_2)
+        Indices 12..15: West incoming vehicles  (west_in_1,  west_in_2)
+        Index 16:       North pedestrian crossing (across north road)
+        Index 17:       East pedestrian crossing  (across east road)
+        Index 18:       South pedestrian crossing (across south road)
+        Index 19:       West pedestrian crossing  (across west road)
     """
 
     TLS_ID = "center"
@@ -32,7 +36,16 @@ class SUMOTrafficAdapter:
         "west":  [12, 13, 14, 15]
     }
 
-    TOTAL_LINKS = 16
+    # Pedestrian crossing link indices across each approach road:
+    # 16: North crossing, 17: East crossing, 18: South crossing, 19: West crossing
+    CROSSING_LINK_INDICES: Dict[str, int] = {
+        "north": 16,
+        "east":  17,
+        "south": 18,
+        "west":  19
+    }
+
+    TOTAL_LINKS = 20
 
     def __init__(self, tls_id: str = "center", connection=sumo_conn):
         self.tls_id = tls_id
@@ -59,22 +72,39 @@ class SUMOTrafficAdapter:
 
     def build_state_string(self, approach_states: Dict[str, str]) -> str:
         """
-        Constructs the exact 16-character TraCI traffic light state string
+        Constructs the exact 20-character TraCI traffic light state string
         from approach states {"north": "...", "south": "...", "east": "...", "west": "..."}.
+        16 vehicular approach links + 4 pedestrian crossing links.
         """
         chars = ["r"] * self.TOTAL_LINKS
 
+        # 1. Map 16 vehicular approach links
         for approach, indices in self.APPROACH_LINK_INDICES.items():
             color = approach_states.get(approach, "red")
             char = self.color_to_sumo_char(color)
             for idx in indices:
                 chars[idx] = char
 
+        # 2. Map 4 pedestrian crossings (Green when crossing stopped traffic, Red when vehicles moving)
+        n_car = approach_states.get("north", "red").lower()
+        s_car = approach_states.get("south", "red").lower()
+        e_car = approach_states.get("east", "red").lower()
+        w_car = approach_states.get("west", "red").lower()
+
+        # Crossing across North approach is Green only when North traffic is stopped on Red
+        chars[16] = "G" if "red" in n_car else "r"
+        # Crossing across East approach is Green only when East traffic is stopped on Red
+        chars[17] = "G" if "red" in e_car else "r"
+        # Crossing across South approach is Green only when South traffic is stopped on Red
+        chars[18] = "G" if "red" in s_car else "r"
+        # Crossing across West approach is Green only when West traffic is stopped on Red
+        chars[19] = "G" if "red" in w_car else "r"
+
         return "".join(chars)
 
     def apply_signals(self, approach_states: Dict[str, str]) -> bool:
         """
-        Sends the translated 16-link signal state to SUMO via TraCI.
+        Sends the translated 20-link signal state to SUMO via TraCI.
         Safe no-op if simulation is not currently running.
         """
         state_str = self.build_state_string(approach_states)
@@ -107,4 +137,3 @@ class SUMOTrafficAdapter:
 
 # Global singleton instance
 sumo_traffic_adapter = SUMOTrafficAdapter()
-

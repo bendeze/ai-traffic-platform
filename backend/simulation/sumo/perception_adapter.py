@@ -31,10 +31,10 @@ class SUMOPerceptionAdapter:
     }
 
     APPROACH_LANES = {
-        "north": ["north_in_0", "north_in_1"],
-        "south": ["south_in_0", "south_in_1"],
-        "east":  ["east_in_0",  "east_in_1"],
-        "west":  ["west_in_0",  "west_in_1"]
+        "north": ["north_in_1", "north_in_2"],
+        "south": ["south_in_1", "south_in_2"],
+        "east":  ["east_in_1",  "east_in_2"],
+        "west":  ["west_in_1",  "west_in_2"]
     }
 
     def __init__(self, connection=sumo_conn):
