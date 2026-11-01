@@ -42,7 +42,7 @@ function SumoTrafficLight({
           title={`${name} Red`}
           className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
             isRed
-              ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)] ring-1 ring-red-400'
+              ? 'bg-red-500 ring-1 ring-red-400'
               : 'bg-red-950/40 opacity-30'
           }`}
         />
@@ -50,7 +50,7 @@ function SumoTrafficLight({
           title={`${name} Yellow`}
           className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
             isYellow
-              ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.95)] ring-1 ring-amber-300'
+              ? 'bg-amber-400 ring-1 ring-amber-300'
               : 'bg-amber-950/40 opacity-30'
           }`}
         />
@@ -58,7 +58,7 @@ function SumoTrafficLight({
           title={`${name} Green`}
           className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
             isGreen
-              ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.95)] ring-1 ring-emerald-400'
+              ? 'bg-emerald-500 ring-1 ring-emerald-400'
               : 'bg-emerald-950/40 opacity-30'
           }`}
         />
@@ -152,7 +152,7 @@ export default function VisionFeedMonitor({
                   <span className="text-zinc-300 dark:text-zinc-700">|</span>
                   <span>Vehicles: <strong className="text-emerald-600 dark:text-emerald-400">{sumoVehicleCount}</strong></span>
                   <span className="text-zinc-300 dark:text-zinc-700">|</span>
-                  <span>Step: <strong className='text-[8px]'>0.1s (10 Hz)</strong></span>
+                  <span>Step: <strong className='text-[8px]'>10 Hz</strong></span>
                 </div>
               </div>
 
