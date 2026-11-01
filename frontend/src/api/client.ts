@@ -12,8 +12,8 @@ const getHost = () => {
   return '127.0.0.1';
 };
 
-export const API_BASE = `http://${getHost()}:8000`;
-export const WS_URL = `ws://${getHost()}:8000/ws`;
+export const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || `http://${getHost()}:8000`;
+export const WS_URL = (import.meta as any).env?.VITE_WS_URL || `ws://${getHost()}:8000/ws`;
 
 export const apiClient = {
   // Controller Endpoints
