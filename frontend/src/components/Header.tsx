@@ -15,6 +15,7 @@ interface HeaderProps {
   startSumo: () => void;
   switchEnvironment: (env: EnvironmentType) => void;
   setSource: (source: string) => void;
+  videoSource: 'webcam' | 'upload';
   handleFileUpload: (e: ChangeEvent<HTMLInputElement>) => void;
   stopFeed: () => void;
   setShowCalibrate: (show: boolean) => void;
@@ -36,6 +37,7 @@ export default function Header({
   startSumo,
   switchEnvironment,
   setSource,
+  videoSource,
   handleFileUpload,
   stopFeed,
   setShowCalibrate,
@@ -72,13 +74,13 @@ export default function Header({
         {/* Physical Camera Feed */}
         <button
           onClick={() => { switchEnvironment('video'); setSource('webcam'); }}
-          className={`${!isSumoMode ? 'btn-minimal-active' : 'btn-minimal'} !text-[0.68rem] !py-1 !px-2.5`}
+          className={`${!isSumoMode && videoSource === 'webcam' ? 'btn-minimal-active' : 'btn-minimal'} !text-[0.68rem] !py-1 !px-2.5`}
         >
           CAMERA
         </button>
 
         {/* Upload Custom Video Footage */}
-        <label className="btn-minimal !text-[0.68rem] !py-1 !px-2.5 cursor-pointer inline-flex items-center">
+        <label className={`${!isSumoMode && videoSource === 'upload' ? 'btn-minimal-active' : 'btn-minimal'} !text-[0.68rem] !py-1 !px-2.5 cursor-pointer inline-flex items-center`}>
           UPLOAD
           <input
             type="file"
@@ -98,18 +100,6 @@ export default function Header({
             </button>
           </>
         )}
-
-        {/* WebSocket Connection Status */}
-        <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              wsConnected ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' : 'bg-zinc-400 dark:bg-zinc-600'
-            }`}
-          />
-          <span className="font-mono text-[0.68rem] text-zinc-500 dark:text-zinc-400 tracking-wider">
-            {wsConnected ? 'LIVE' : 'OFFLINE'}
-          </span>
-        </div>
 
         {/* Arduino Serial Hardware Controls */}
         <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">

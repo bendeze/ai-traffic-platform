@@ -98,6 +98,7 @@ class AppState:
             "pedestrian": self.ped_requests,
             "active_ambulance": self.active_ambulance,
             "active_environment": self.active_environment,
+            "video_source": self.video_source,
             "simulation": self.sumo_mgr.get_telemetry(),
             "pipeline": self.vision.health(),
             "hardware": self.serial_mgr.status(),

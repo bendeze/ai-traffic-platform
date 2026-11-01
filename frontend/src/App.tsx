@@ -32,6 +32,7 @@ export default function App() {
   const [mode, setMode] = useState<OperatingMode>('adaptive');
   const [visionMode, setVisionMode] = useState<VisionMode>('tracking');
   const [activeEnvironment, setActiveEnvironment] = useState<EnvironmentType>('sumo');
+  const [videoSource, setVideoSource] = useState<'webcam' | 'upload'>('webcam');
   const [manualA, setManualA] = useState<number>(30);
   const [manualB, setManualB] = useState<number>(30);
   const [activePedestrian, setActivePedestrian] = useState<string | null>(null);
@@ -55,6 +56,13 @@ export default function App() {
     }
     if (data?.active_environment) {
       setActiveEnvironment(data.active_environment);
+    }
+    if (data?.video_source !== undefined) {
+      if (data.video_source === 'webcam') {
+        setVideoSource('webcam');
+      } else if (data.video_source) {
+        setVideoSource('upload');
+      }
     }
   }, [data, mode]);
 
@@ -179,6 +187,7 @@ export default function App() {
 
   const setSource = async (source: string) => {
     setActiveEnvironment('video');
+    setVideoSource(source === 'webcam' ? 'webcam' : 'upload');
     try {
       await apiClient.setSource(source);
       setLog(`FEED INPUT: ${source.toUpperCase()}`);
@@ -200,6 +209,7 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     setActiveEnvironment('video');
+    setVideoSource('upload');
     setLog(`UPLOADING ${file.name.toUpperCase()}...`);
     try {
       await apiClient.uploadVideo(file);
@@ -344,6 +354,7 @@ export default function App() {
         startSumo={startSumo}
         switchEnvironment={switchEnvironment}
         setSource={setSource}
+        videoSource={videoSource}
         handleFileUpload={handleFileUpload}
         stopFeed={stopFeed}
         setShowCalibrate={setShowCalibrate}

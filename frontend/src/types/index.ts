@@ -66,6 +66,7 @@ export interface PipelineTelemetry {
 
 export interface TelemetryPayload {
   active_environment?: EnvironmentType;
+  video_source?: string | null;
   signal?: SignalInfo;
   vision?: VisionTelemetry;
   simulation?: SumoTelemetry;
