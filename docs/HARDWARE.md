@@ -4,6 +4,36 @@ The **AI Traffic Management Platform** features direct physical actuation throug
 
 ---
 
+## Circuit Interconnect Architecture
+
+```mermaid
+flowchart TD
+    HOST["Host PC (FastAPI Backend)"] -->|USB Serial @ 9600 baud\nJSON Commands| MCU["Arduino Nano 33 BLE / Uno"]
+    
+    subgraph PINS ["Microcontroller GPIO Outputs"]
+        direction TB
+        N_GRP["North Approach:\n• Red: Pin A5\n• Yellow: Pin A6\n• Green: Pin A7"]
+        S_GRP["South Approach:\n• Red: Pin 5\n• Yellow: Pin 6\n• Green: Pin 7"]
+        E_GRP["East Approach:\n• Red: Pin 8\n• Yellow: Pin 9\n• Green: Pin 10"]
+        W_GRP["West Approach:\n• Red: Pin 11\n• Yellow: Pin 12\n• Green: Pin A4"]
+    end
+    
+    MCU --> N_GRP
+    MCU --> S_GRP
+    MCU --> E_GRP
+    MCU --> W_GRP
+    
+    N_GRP --> RES["220Ω - 330Ω Current-Limiting Resistors"]
+    S_GRP --> RES
+    E_GRP --> RES
+    W_GRP --> RES
+    
+    RES --> LEDS["12 External LEDs on Breadboard"]
+    LEDS --> GND["Common Ground (GND)"]
+```
+
+---
+
 ## Pinout & Wiring Specifications
 
 | Approach | Signal Color | Microcontroller Pin | Resistor | Function |
@@ -45,4 +75,17 @@ Initiates sequential 12-LED diagnostic hardware test across all approaches:
 
 ### 3. Failsafe Watchdog
 If the Arduino loses connection with the backend for more than **6.0 seconds**, it automatically transitions into **`FAIL_SAFE`** mode (flashing all yellow signals at 1 Hz) to prevent intersection gridlock.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Standby: Power On
+    Standby --> Normal_Actuation: Receives valid JSON frame from Host
+    Normal_Actuation --> Normal_Actuation: Heartbeat frame reset watchdog (< 6s)
+    Normal_Actuation --> Failsafe_Mode: No packet received for > 6.0 seconds
+    Failsafe_Mode --> Normal_Actuation: Host reconnects and resumes packets
+    
+    state Failsafe_Mode {
+        Yellow_Blink: All 4 Yellow LEDs flash synchronously at 1 Hz
+    }
+```
 

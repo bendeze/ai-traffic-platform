@@ -98,54 +98,64 @@ Physical breadboard setup with 12 external LEDs (Red, Yellow, Green for North, S
 
 ## 🏗️ System Architecture
 
+```mermaid
+flowchart TD
+    subgraph INGESTION ["Perception & Simulation Ingestion"]
+        direction TB
+        CAM["Live Video Stream / MP4 Upload"] --> YOLO["YOLOv8 Perception Pipeline"]
+        YOLO --> ROI["Spatial ROI Polygon Assigner\n(North, South, East, West)"]
+        SUMO["Eclipse SUMO Simulation\n(Microscopic Traffic Engine)"] --> TRACI["TraCI Perception Adapter\n(10 Hz Sync Loop)"]
+    end
+
+    subgraph CORE ["Authoritative Core Controller (FastAPI Backend)"]
+        direction TB
+        EST["Traffic State Estimator\n- Queue length integration\n- Waiting time accumulation\n- Multi-class breakdown"]
+        DEC["Adaptive Decision Engine\n- Vehicle demand scoring\n- Anti-starvation fair caps\n- Emergency vehicle priority\n- Actuated pedestrian logic"]
+        SAFE["Safety Manager (FSM Hardware Interlock)\n- Invariant: Conflicting greens impossible\n- 4-way yellow transition (3s)\n- All-red clearance (1s)\n- Pedestrian 10s RED hold\n- Ambulance green extension"]
+        
+        ROI --> EST
+        TRACI --> EST
+        EST --> DEC
+        DEC --> SAFE
+    end
+
+    subgraph ACTUATION ["Actuation & Output Targets"]
+        direction TB
+        SAFE --> SIM_ADAPT["SUMO Traffic Adapter\n(20-Link Verified Junction Map)"]
+        SAFE --> SERIAL["Serial Manager\n(Non-blocking background thread)"]
+        SAFE --> WS["WebSocket Telemetry Broadcaster\n(~3.3 Hz Push Stream)"]
+        
+        SIM_ADAPT --> SUMO_NET["SUMO Simulated Vehicles & Crossing Signals"]
+        SERIAL --> ARDUINO["Arduino Nano 33 BLE\n(12 Physical LEDs + Watchdog)"]
+        WS --> UI["React + TypeScript Web Dashboard\n(Real-Time Analytics & Controls)"]
+    end
+
+    classDef coreStyle fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    classDef ingestStyle fill:#0f172a,stroke:#34d399,stroke-width:2px,color:#f8fafc;
+    classDef actStyle fill:#0f172a,stroke:#fbbf24,stroke-width:2px,color:#f8fafc;
+
+    class CAM,YOLO,ROI,SUMO,TRACI ingestStyle;
+    class EST,DEC,SAFE coreStyle;
+    class SIM_ADAPT,SERIAL,WS,SUMO_NET,ARDUINO,UI actStyle;
 ```
-┌─────────────────────────┐       ┌────────────────────────┐
-│  Physical Camera / Video │       │  Eclipse SUMO Engine   │
-│  Upload (YOLOv8 Vision)  │       │  (TraCI Microscopic)   │
-└───────────┬─────────────┘       └───────────┬────────────┘
-            │                                 │
-            ▼                                 ▼
-    [Perception Layer]               [Simulation Adapter]
-   (Vehicles, Queues,               (Vehicles, Speeds,
-    Emergency Detection)             Emergency Preemption)
-            │                                 │
-            └────────────────┬────────────────┘
-                             │
-                             ▼
-              ┌─────────────────────────────┐
-              │   Adaptive Decision Engine  │
-              │  - Demand-responsive timing │
-              │  - Anti-starvation caps     │
-              │  - Emergency preemption     │
-              │  - Pedestrian hold phases   │
-              └──────────────┬──────────────┘
-                             │
-            ┌────────────────┴────────────────┐
-            │                                 │
-            ▼                                 ▼
-┌───────────────────────────────┐ ┌───────────────────────────────┐
-│   FastAPI WebSocket Stream    │ │   Hardware Serial Manager     │
-│  - Real-time React Dashboard  │ │  - Arduino Nano 33 BLE        │
-│  - Dark/Light Theme Telemetry │ │  - 12-LED Physical Breadboard │
-└───────────────────────────────┘ └───────────────────────────────┘
-```
+
+> 📖 **Deep Dive:** For detailed sequence diagrams, mathematical models, and FSM transition rules, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/WORKING_PRINCIPLE.md](docs/WORKING_PRINCIPLE.md).
 
 ---
 
-## 📁 Repository Structure
+## 📁 Repository Structure & Documentation
 
 ```
 ai-traffic-platform/
 ├── backend/
-│   ├── api/
-│   │   ├── routes/             # REST endpoints (video, simulation, controller, serial)
-│   │   └── dependencies.py     # FastAPI application state injection
-│   ├── config/                 # Pydantic & dataclass system settings (.env support)
-│   ├── controller/             # Safety manager, signal FSM, and serial manager
+│   ├── api/                    # REST routes (video, simulation, controller, serial)
+│   ├── config/                 # Pydantic system settings & .env support
+│   ├── controller/             # Safety manager, signal FSM, and serial worker
 │   ├── core/                   # Shared application state singleton & models
-│   ├── services/               # Vision service, decision loop, telemetry broadcaster
-│   ├── simulation/sumo/        # Eclipse SUMO scenario, TraCI manager, and metrics
-│   ├── traffic/                # Estimation, queue calculation, and timing engine
+│   ├── services/               # Vision, decision loop, telemetry broadcaster
+│   ├── simulation/sumo/        # Eclipse SUMO scenario, TraCI manager, 20-link adapter
+│   ├── tests/                  # Automated unit & regression test suite
+│   ├── traffic/                # Estimation, queue calculation, timing engine
 │   ├── vision/                 # YOLOv8 inference, ROI spatial tracker, camera pipeline
 │   ├── main.py                 # FastAPI application entry point
 │   └── requirements.txt        # Python backend dependencies
@@ -153,7 +163,7 @@ ai-traffic-platform/
 │   ├── src/
 │   │   ├── api/                # Axios API client wrapper
 │   │   ├── components/         # Modular React UI components (Header, Grid, Monitor)
-│   │   ├── components/ui/      # shadcn/ui accessible primitives (Select, DropdownMenu)
+│   │   ├── components/ui/      # Accessible shadcn/ui primitives
 │   │   ├── context/            # ThemeContext (Dark / Light mode provider)
 │   │   ├── hooks/              # WebSocket telemetry subscription hook
 │   │   ├── types/              # Comprehensive TypeScript interfaces
@@ -163,6 +173,10 @@ ai-traffic-platform/
 ├── firmware/
 │   └── arduino/traffic_signal/ # Arduino C++ sketch for 12-LED hardware controller
 ├── docs/
+│   ├── GETTING_STARTED.md      # Installation, uv package manager, and testing guide
+│   ├── ARCHITECTURE.md         # Detailed system architecture & Mermaid diagrams
+│   ├── WORKING_PRINCIPLE.md    # Scientific principles, FSM invariants & timing logic
+│   ├── USER_GUIDE.md           # Dashboard operator walkthrough & feature guide
 │   ├── HARDWARE.md             # Pin mapping, wiring diagrams, and serial protocol
 │   └── images/                 # Architecture, simulation, and UI screenshots
 ├── CONTRIBUTING.md              # Open source contribution guidelines
@@ -175,7 +189,7 @@ ai-traffic-platform/
 ## ⚡ Quick Start Guide
 
 ### 1. Prerequisites
-- **Python 3.10+**
+- **Python 3.10+** (or **uv** for ultra-fast setup)
 - **Node.js 18+** & **npm**
 - **Eclipse SUMO 1.20+** (ensure `SUMO_HOME` environment variable is set)
 - *(Optional)* **Arduino IDE** (for physical 12-LED breadboard actuation)
@@ -183,26 +197,49 @@ ai-traffic-platform/
 ---
 
 ### 2. Backend Setup
+
+#### Option A: Using `uv` (Fast & Recommended)
 ```bash
 # Clone the repository
 git clone https://github.com/bendeze/ai-traffic-platform.git
 cd ai-traffic-platform/backend
 
-# Create and activate Python virtual environment
-python -m venv .venv
+# Create virtual environment & install dependencies
+uv venv
+# Windows: .venv\Scripts\activate  |  Linux/macOS: source .venv/bin/activate
+uv pip install -r requirements.txt
 
-# Windows:
-.\.venv\Scripts\activate
+# Run automated test suite
+# Windows (PowerShell):
+$env:PYTHONPATH="backend"; uv run python -m unittest discover -s tests
 # Linux/macOS:
-source .venv/bin/activate
+PYTHONPATH=backend uv run python -m unittest discover -s tests
+
+# Start FastAPI server
+uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+#### Option B: Using Standard Python `venv` + `pip`
+```bash
+cd backend
+
+# Create and activate virtual environment
+python -m venv .venv
+# Windows: .\.venv\Scripts\activate  |  Linux/macOS: source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
+# Run automated test suite
+# Windows (PowerShell):
+$env:PYTHONPATH="backend"; python -m unittest discover -s tests
+# Linux/macOS:
+PYTHONPATH=backend python -m unittest discover -s tests
+
 # Start FastAPI server
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
-The backend API and Swagger docs will be live at `http://localhost:8000/docs`.
+Interactive OpenAPI documentation (Swagger) is available at `http://localhost:8000/docs`.
 
 ---
 
@@ -220,12 +257,41 @@ Open `http://localhost:3000` in your browser.
 
 ---
 
-### 4. Hardware Actuation (Optional)
+### 4. Running the Test Suite with `uv`
+
+The test suite covers pedestrian crossing deceleration, baseline safety intervals, SUMO TraCI translations, and vehicle dynamics:
+
+```bash
+# Run all tests
+$env:PYTHONPATH="backend"; uv run python -m unittest discover -s backend/tests
+
+# Run pedestrian crossing stop tests
+uv run python -m unittest backend/tests/test_pedestrian_crossing_stop.py
+
+# Run baseline FSM safety tests
+uv run python -m unittest backend/tests/test_baseline.py
+```
+
+---
+
+### 5. Hardware Actuation (Optional)
 1. Open [`firmware/arduino/traffic_signal/traffic_signal.ino`](firmware/arduino/traffic_signal/traffic_signal.ino) in Arduino IDE.
 2. Select your board (**Arduino Nano 33 BLE**, **Nano**, or **Uno**) and upload the sketch.
 3. Plug the board into USB.
 4. On the web dashboard, the serial dropdown will automatically detect your Arduino with `⚡ AUTO-DETECT`. Click **CONNECT** or **TEST LEDS** to trigger a hardware diagnostic sweep!
 5. For full circuit schematics, see [docs/HARDWARE.md](docs/HARDWARE.md).
+
+---
+
+## 📚 In-Depth Documentation
+
+Explore the comprehensive guides located in the [`docs/`](docs/) directory:
+
+- 🚀 **[Getting Started & Testing Guide](docs/GETTING_STARTED.md):** Complete installation, `uv` configuration, environment setup, and test matrix.
+- 🏛️ **[System Architecture & Design](docs/ARCHITECTURE.md):** Architectural data flow, state machine diagrams, TraCI simulation sequences, and 20-link junction maps.
+- 🧠 **[Working Principles & Scientific Theory](docs/WORKING_PRINCIPLE.md):** Mathematical models, YOLOv8 spatial tracking, anti-starvation fair caps, and Kigali-standard pedestrian stops.
+- 🕹️ **[Operator & User Guide](docs/USER_GUIDE.md):** Dashboard walkthrough, mode selection, simulation controls, pedestrian requests, and emergency preemption.
+- 🔌 **[Hardware & Circuit Reference](docs/HARDWARE.md):** Microcontroller pin mapping, circuit schematics, serial protocol, and watchdog failsafe.
 
 ---
 
