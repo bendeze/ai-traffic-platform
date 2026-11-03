@@ -121,14 +121,17 @@ class SUMOTrafficAdapter:
             self.last_applied_state = state_str
             return False
 
+        self._total_updates += 1
+
+        # Deduplicate redundant socket writes when state has not changed (heartbeat every 20 steps / 2.0s)
+        if state_str == self.last_applied_state and (self._total_updates % 20 != 0):
+            return True
 
         try:
             traci.switch(self.conn._traci_label)
-            # Only send update if state changed or periodically to maintain external control
             traci.trafficlight.setRedYellowGreenState(self.tls_id, state_str)
             self.last_applied_state = state_str
             self.last_approach_states = approach_states
-            self._total_updates += 1
             return True
         except Exception as e:
             # TraCI error or connection lost

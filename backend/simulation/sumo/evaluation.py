@@ -362,8 +362,8 @@ class EvaluationManager:
                 now_sim = t0 + (step * 0.1)
                 safety.update(now_sim)
 
-                # 3. High-efficiency 5 Hz Perception & Decision Cycle (every 0.2s or when in transition)
-                if step % 2 == 0 or safety._in_transition:
+                # 3. High-efficiency 2 Hz Perception & Decision Cycle (every 0.5s or during state transitions)
+                if step % 5 == 0 or safety._in_transition:
                     approach_states = perception_adapter.step_and_measure()
                     for app_name, st in approach_states.items():
                         if app_name in estimator._states:
@@ -435,7 +435,8 @@ class EvaluationManager:
             unit: str,
             manual_val: float,
             adaptive_val: float,
-            lower_is_better: bool = True
+            lower_is_better: bool = True,
+            category: str = "traffic"
         ) -> Dict[str, Any]:
             diff = adaptive_val - manual_val
             if manual_val > 0:
@@ -446,7 +447,9 @@ class EvaluationManager:
             else:
                 imp_pct = 0.0
 
-            if abs(imp_pct) < 0.5:
+            if category == "benchmark":
+                better = "neutral"
+            elif abs(imp_pct) < 0.5:
                 better = "neutral"
             elif lower_is_better:
                 better = "adaptive" if adaptive_val < manual_val else "manual"
@@ -463,6 +466,7 @@ class EvaluationManager:
                 "improvement": round(imp_pct, 1),
                 "better": better,
                 "lowerIsBetter": lower_is_better,
+                "category": category,
             }
 
         metrics = [
@@ -512,13 +516,15 @@ class EvaluationManager:
                 "simulation_duration", "Simulation Duration", "s",
                 duration,
                 duration,
-                lower_is_better=True
+                lower_is_better=True,
+                category="benchmark"
             ),
             make_metric(
                 "execution_time", "Execution Time", "s",
                 manual_exec_time,
                 adaptive_exec_time,
-                lower_is_better=True
+                lower_is_better=True,
+                category="benchmark"
             ),
         ]
 

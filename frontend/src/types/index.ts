@@ -122,8 +122,9 @@ export interface EvaluationMetric {
   adaptive: number;
   diff: number;
   improvement: number;
-  better: 'adaptive' | 'manual' | 'neutral';
+  better: 'adaptive' | 'manual' | 'neutral' | string;
   lowerIsBetter: boolean;
+  category?: 'traffic' | 'benchmark' | string;
 }
 
 export interface EvaluationQueueTimelinePoint {

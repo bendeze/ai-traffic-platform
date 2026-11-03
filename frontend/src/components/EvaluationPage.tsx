@@ -25,6 +25,7 @@ import {
   Layers,
   CheckCircle2,
   AlertCircle,
+  Cpu,
 } from 'lucide-react';
 import EvaluationHeader from './EvaluationHeader';
 import { apiClient } from '../api/client';
@@ -579,64 +580,129 @@ export default function EvaluationPage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {data.metrics.map((m) => {
-                    const isPositive = m.better === 'adaptive';
-                    const isManual = m.better === 'manual';
+                  {data.metrics
+                    .filter((m) => m.category !== 'benchmark' && m.name !== 'execution_time' && m.name !== 'simulation_duration')
+                    .map((m) => {
+                      const isPositive = m.better === 'adaptive';
+                      const isManual = m.better === 'manual';
 
-                    return (
-                      <tr
-                        key={m.name}
-                        className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
-                      >
-                        <td className="py-2 px-3 font-bold text-zinc-800 dark:text-zinc-200">
-                          {m.label}
-                        </td>
-                        <td className="py-2 px-3 text-right text-zinc-600 dark:text-zinc-300">
-                          {m.manual} <span className="text-[0.65rem] text-zinc-400">{m.unit}</span>
-                        </td>
-                        <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                          {m.adaptive} <span className="text-[0.65rem] text-zinc-400">{m.unit}</span>
-                        </td>
-                        <td className="py-2 px-3 text-right text-zinc-500 dark:text-zinc-400">
-                          {m.diff > 0 ? `+${m.diff}` : m.diff} {m.unit}
-                        </td>
-                        <td className="py-2 px-3 text-right">
-                          <span
-                            className={`inline-flex items-center gap-1 font-bold px-1.5 py-0.5 text-[0.65rem] ${
-                              isPositive
-                                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/30'
-                                : isManual
-                                ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-500/30'
-                                : 'text-zinc-500 dark:text-zinc-400'
-                            }`}
-                          >
-                            {m.improvement > 0 ? `+${m.improvement}%` : `${m.improvement}%`}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3 text-center text-[0.65rem] text-zinc-400">
-                          {m.lowerIsBetter ? 'Lower is Better' : 'Higher is Better'}
-                        </td>
-                        <td className="py-2 px-3 text-center">
-                          {isPositive ? (
-                            <span className="inline-flex items-center gap-1 font-bold text-[0.62rem] text-emerald-600 dark:text-emerald-400">
-                              <CheckCircle2 className="w-3 h-3" /> ADAPTIVE
+                      return (
+                        <tr
+                          key={m.name}
+                          className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
+                        >
+                          <td className="py-2 px-3 font-bold text-zinc-800 dark:text-zinc-200">
+                            {m.label}
+                          </td>
+                          <td className="py-2 px-3 text-right text-zinc-600 dark:text-zinc-300">
+                            {m.manual} <span className="text-[0.65rem] text-zinc-400">{m.unit}</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                            {m.adaptive} <span className="text-[0.65rem] text-zinc-400">{m.unit}</span>
+                          </td>
+                          <td className="py-2 px-3 text-right text-zinc-500 dark:text-zinc-400">
+                            {m.diff > 0 ? `+${m.diff}` : m.diff} {m.unit}
+                          </td>
+                          <td className="py-2 px-3 text-right">
+                            <span
+                              className={`inline-flex items-center gap-1 font-bold px-1.5 py-0.5 text-[0.65rem] ${
+                                isPositive
+                                  ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/30'
+                                  : isManual
+                                  ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-500/30'
+                                  : 'text-zinc-500 dark:text-zinc-400'
+                              }`}
+                            >
+                              {m.improvement > 0 ? `+${m.improvement}%` : `${m.improvement}%`}
                             </span>
-                          ) : isManual ? (
-                            <span className="inline-flex items-center gap-1 font-bold text-[0.62rem] text-zinc-500 dark:text-zinc-400">
-                              MANUAL
-                            </span>
-                          ) : (
-                            <span className="text-[0.62rem] text-zinc-400 font-bold">
-                              EQUAL
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                          <td className="py-2 px-3 text-center text-[0.65rem] text-zinc-400">
+                            {m.lowerIsBetter ? 'Lower is Better' : 'Higher is Better'}
+                          </td>
+                          <td className="py-2 px-3 text-center">
+                            {isPositive ? (
+                              <span className="inline-flex items-center gap-1 font-bold text-[0.62rem] text-emerald-600 dark:text-emerald-400">
+                                <CheckCircle2 className="w-3 h-3" /> ADAPTIVE
+                              </span>
+                            ) : isManual ? (
+                              <span className="inline-flex items-center gap-1 font-bold text-[0.62rem] text-zinc-500 dark:text-zinc-400">
+                                MANUAL
+                              </span>
+                            ) : (
+                              <span className="text-[0.62rem] text-zinc-400 font-bold">
+                                EQUAL
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
+
+            {/* Simulation & Compute Benchmark Telemetry */}
+            {(() => {
+              const benchmarks = data.metrics.filter(
+                (m) => m.category === 'benchmark' || m.name === 'execution_time' || m.name === 'simulation_duration'
+              );
+              if (benchmarks.length === 0) return null;
+
+              return (
+                <div className="mt-5 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="w-3.5 h-3.5 text-blue-500" />
+                      <span className="font-mono text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                        Simulation Engine & Compute Telemetry
+                      </span>
+                    </div>
+                    <span className="font-mono text-[0.62rem] px-2 py-0.5 border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold">
+                      SYSTEM BENCHMARK
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {benchmarks.map((m) => {
+                      const simDuration = data.metadata?.simulationDuration || 3600;
+                      const isExec = m.name === 'execution_time';
+                      const adaptiveSpeedup = isExec && m.adaptive > 0
+                        ? (simDuration / m.adaptive).toFixed(1)
+                        : null;
+                      const manualSpeedup = isExec && m.manual > 0
+                        ? (simDuration / m.manual).toFixed(1)
+                        : null;
+
+                      return (
+                        <div
+                          key={m.name}
+                          className="p-3 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between"
+                        >
+                          <div>
+                            <div className="font-mono text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                              {m.label}
+                            </div>
+                            <div className="font-mono text-[0.65rem] text-zinc-400 mt-0.5">
+                              {isExec
+                                ? `Simulation Throughput: ${adaptiveSpeedup}x real-time speedup (Manual: ${manualSpeedup}x)`
+                                : 'Simulated virtual horizon duration'}
+                            </div>
+                          </div>
+                          <div className="text-right font-mono">
+                            <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                              {m.adaptive} {m.unit}
+                            </div>
+                            <div className="text-[0.65rem] text-zinc-400">
+                              {isExec ? `Manual: ${m.manual} ${m.unit}` : 'Scenario Horizon'}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
