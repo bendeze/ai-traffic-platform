@@ -5,6 +5,7 @@ from .priority import router as priority_router
 from .serial import router as serial_router
 from .config import router as config_router
 from .websocket import router as websocket_router
+from .evaluation import router as evaluation_router
 
 __all__ = [
     "video_router",
@@ -14,5 +15,5 @@ __all__ = [
     "serial_router",
     "config_router",
     "websocket_router",
+    "evaluation_router",
 ]
-

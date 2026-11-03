@@ -19,8 +19,9 @@ async def set_phase(phase: str, duration: Optional[int] = None, state: AppState 
         raise HTTPException(400, "Phase must be A or B")
     dur = duration if duration is not None else state.engine.manual_durations.get(phase, 30)
     state.engine.manual_durations[phase] = dur
-    state.engine.notify_phase_started(phase)
-    state.safety.request_phase(phase, duration=dur, manual=True)
+    if phase == state.safety.current_phase:
+        state.engine.notify_phase_started(phase)
+    state.safety.request_phase(phase, duration=dur, manual=True, yellow_dur=float(state.safety.settings.timing.yellow_dur))
     return {"status": "ok", "phase": phase, "duration": dur}
 
 @router.post("/controller/mode/{mode}")
@@ -48,16 +49,24 @@ async def start_manual_loop(body: ManualLoopRequest, state: AppState = Depends(g
     # If loop was already running, WAIT for the active running timer to finish first!
     if not was_running:
         dur = phase_a if start_phase == "A" else phase_b
-        state.engine.notify_phase_started(start_phase, duration=dur)
-        state.safety.current_phase = start_phase
-        state.safety.signal_state = SignalState.GREEN
-        state.safety.remaining_green = float(dur)
-        state.safety._phase_start = time.time()
-        state.safety._in_transition = False
-        state.safety._pending_phase = None
+        if state.safety.current_phase != start_phase:
+            state.safety.request_phase(
+                start_phase,
+                duration=dur,
+                manual=True,
+                yellow_dur=float(state.safety.settings.timing.yellow_dur)
+            )
+        else:
+            state.engine.notify_phase_started(start_phase, duration=dur)
+            state.safety.current_phase = start_phase
+            state.safety.signal_state = SignalState.GREEN
+            state.safety.remaining_green = float(dur)
+            state.safety._phase_start = time.time()
+            state.safety._in_transition = False
+            state.safety._pending_phase = None
 
         if state.serial_mgr.is_connected():
-            state.serial_mgr.send_signals(state.safety.get_approach_states(), start_phase, dur)
+            state.serial_mgr.send_signals(state.safety.get_approach_states(), state.safety.current_phase, dur)
 
     return {
         "status": "ok",

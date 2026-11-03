@@ -9,6 +9,7 @@ router = APIRouter(prefix="/config", tags=["Configuration"])
 
 @router.get("")
 async def get_config(state: AppState = Depends(get_app_state)):
+    state.refresh_settings()
     return {
         "approaches": [{"name": a.name, "polygon": a.polygon} for a in state.settings.approaches],
         "timing": state.settings.timing.__dict__,
@@ -24,5 +25,6 @@ async def update_approaches(body: UpdateApproachesRequest, state: AppState = Dep
     ]
     state.vision.settings.approaches = state.settings.approaches
     save_settings(state.settings)
+    state.refresh_settings()
     return {"status": "ok", "saved": len(state.settings.approaches)}
 

@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { ThemeToggle } from './ThemeToggle';
+import { Zap } from 'lucide-react';
 
 interface HeaderProps {
   isSumoMode: boolean;
@@ -65,7 +66,7 @@ export default function Header({
       <div className="flex items-center gap-1.5 flex-wrap">
         {/* SUMO Simulation Environment Toggle */}
         <button
-          onClick={() => { switchEnvironment('sumo'); if (!isSumoRunning) startSumo(); }}
+          onClick={() => switchEnvironment('sumo')}
           className={`${isSumoMode ? 'btn-minimal-active' : 'btn-minimal'} !text-[0.68rem] !py-1 !px-2.5`}
         >
           SUMO SIMULATION
@@ -101,78 +102,72 @@ export default function Header({
           </>
         )}
 
-        {/* Arduino Serial Hardware Controls */}
-        <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">
-          <button
-            onClick={testArduinoLeds}
-            title="Test all 12 physical LEDs on breadboard (Pins 2 to 13)"
-            className="btn-minimal !text-[0.68rem] !py-1 !px-2.5 font-bold border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
+        {/* Hardware Serial Interface */}
+        <div className="inline-flex items-center border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-0.5 ml-2">
+          <Select
+            value={selectedPort}
+            onValueChange={(val: string) => setSelectedPort(val)}
           >
-            TEST LEDS
-          </button>
-          
+            <SelectTrigger className="w-[120px] h-[26px] bg-transparent border-0 text-[0.68rem] font-mono font-medium focus:ring-0 shadow-none text-zinc-800 dark:text-zinc-200">
+              <SelectValue placeholder="PORT" />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 font-mono text-[0.68rem]">
+              <SelectItem value="auto">
+                <span className="inline-flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-amber-500 fill-amber-500" /> AUTO-DETECT
+                </span>
+              </SelectItem>
+              {serialPorts.map((p) => (
+                <SelectItem key={p.port} value={p.port}>
+                  {p.port} {p.is_arduino ? '(ARDUINO)' : p.is_usb ? '(USB)' : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           {isArduinoConnected ? (
-            <div className="flex items-center gap-1.5">
-              <span className="font-mono text-[0.68rem] font-bold text-emerald-700 dark:text-emerald-400">
-                {arduinoPort} CONNECTED
+            <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-1.5 ml-1">
+              <span className="font-mono text-[0.65rem] font-bold text-emerald-700 dark:text-emerald-400 px-1.5">
+                CONNECTED ({arduinoPort})
               </span>
               <button
+                onClick={testArduinoLeds}
+                className="btn-minimal !text-[0.65rem] !py-0.5 !px-2 border-zinc-400 hover:border-zinc-700 dark:border-zinc-600 dark:hover:border-zinc-300"
+                title="Run 12-LED sequential hardware self-test"
+              >
+                TEST LEDS
+              </button>
+              <button
                 onClick={disconnectArduino}
-                className="btn-minimal !text-[0.65rem] !px-2 !py-0.5 border-red-500 text-red-500 hover:border-red-400"
+                className="btn-minimal !text-[0.65rem] !py-0.5 !px-2 border-red-400 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
               >
                 DISCONNECT
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5">
-              <span className="font-mono text-[0.68rem] text-zinc-500 dark:text-zinc-400">
-                ARDUINO:
-              </span>
-              
-              <div className="w-[175px]">
-                <Select value={selectedPort} onValueChange={setSelectedPort}>
-                  <SelectTrigger className="h-7 text-[0.68rem] font-mono px-2 py-0.5">
-                    <SelectValue placeholder="Select Port" />
-                  </SelectTrigger>
-                  <SelectContent className="font-mono text-xs">
-                    <SelectItem value="auto" className="text-[0.68rem] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      ⚡ AUTO-DETECT
-                    </SelectItem>
-                    {serialPorts.length > 0 ? (
-                      serialPorts.map((p) => (
-                        <SelectItem key={p.port} value={p.port} className="text-[0.68rem] font-mono">
-                          {p.port} {p.is_arduino ? '★ (Nano 33 BLE)' : p.is_usb ? '(USB)' : ''}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="none" disabled className="text-[0.68rem] font-mono text-zinc-400">
-                        No ports found (Click ↻)
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <button
-                onClick={() => connectArduino(selectedPort)}
-                className="btn-minimal !text-[0.68rem] !py-1 !px-2.5 border-emerald-500 text-emerald-700 dark:text-emerald-400 font-bold"
-              >
-                CONNECT
-              </button>
-
-              <button
-                onClick={fetchSerialPorts}
-                title="Scan for connected serial ports"
-                className="btn-minimal !text-[0.68rem] !py-1 !px-2"
-              >
-                ↻
-              </button>
-            </div>
+            <button
+              onClick={() => connectArduino(selectedPort)}
+              className="btn-minimal !text-[0.68rem] !py-0.5 !px-2.5 ml-1 border-zinc-400 hover:border-zinc-700 dark:border-zinc-600 dark:hover:border-zinc-300"
+            >
+              CONNECT
+            </button>
           )}
         </div>
 
-        {/* Theme Toggle Button */}
-        <div className="flex items-center ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">
+        {/* WebSocket Connection Diagnostic */}
+        <div className="inline-flex items-center gap-1.5 px-2 py-1 border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-950 ml-1">
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              wsConnected ? 'bg-emerald-500' : 'bg-rose-500'
+            }`}
+          />
+          <span className="font-mono text-[0.65rem] text-zinc-500 dark:text-zinc-400 tracking-wider">
+            {wsConnected ? 'LIVE' : 'DISCONNECTED'}
+          </span>
+        </div>
+
+        {/* Global Dark / Light Theme Toggle */}
+        <div className="ml-2">
           <ThemeToggle />
         </div>
       </div>

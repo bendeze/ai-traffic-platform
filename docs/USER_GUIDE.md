@@ -135,3 +135,33 @@ If you prefer fixed-time cycling instead of adaptive AI scheduling:
    - Click **TEST LEDS** to trigger a diagnostic verification sweep (all 12 LEDs cycle sequentially across Red, Yellow, and Green).
 5. The 12 physical LEDs will now mirror the software signals in real-time.
 
+---
+
+## 📊 7. Automated Simulation Evaluation & Performance Comparison
+
+The **Simulation Evaluation** feature runs a scientific A/B benchmark comparing traditional fixed-time traffic lights against our AI-driven adaptive traffic light controller under identical traffic demand and network conditions.
+
+### How to Run an Evaluation:
+1. Ensure the simulation environment is selected (`SUMO SIMULATION`).
+2. Beside the **▶ START** button, click **📊 EVALUATE**.
+3. The evaluation orchestrator automatically executes two phases:
+   - **Phase 1 (Manual Mode):** Runs SUMO with traditional predefined fixed-time signals, collecting baseline waiting time, queue progression, and throughput.
+   - **Phase 2 (Adaptive Mode):** Re-runs SUMO using the exact same random seed (`42`), vehicle routes, and arrival demand, but controlled by our AI Decision Engine, Safety Manager, and TraCI adapters.
+4. During evaluation, the live progress badge indicates which mode is running (e.g., `Manual Mode running (35%)` ➔ `Adaptive Mode running (75%)`). SUMO-GUI opens on your desktop so you can observe the simulation visually in real-time.
+5. Upon completion, the system automatically redirects to `/evaluation/:evaluationId`.
+
+### What You See on the Evaluation Dashboard:
+- **Executive Verdict Banner:** Clear statistical conclusion on which system performed better.
+- **KPI Comparison Cards:** Summary comparison of Average Waiting Time, Average Travel Time, Vehicle Speed, Maximum Queue Length, Vehicles Arrived, and Total Time Loss with percentage improvement indicators.
+- **Detailed Comparison Table:** Metric-by-metric breakdown highlighting winning mode and differences.
+- **Interactive Recharts Visualizations:**
+  1. *Average Waiting Time Comparison* (Bar chart)
+  2. *Average Travel Time Comparison* (Bar chart)
+  3. *Vehicle Speed Comparison* (Bar chart)
+  4. *Queue Length Over Time* (Line chart comparing halted queue progression)
+  5. *Waiting Time Distribution* (Histogram categorized into delay brackets: `0-10s`, `10-20s`, `20-30s`, `30-40s`, `40s+`)
+  6. *Vehicle Throughput* (Cumulative vehicle arrival curves over time)
+- **Objective Narrative Analysis:** Comprehensive breakdown explaining how dynamic phase allocation relieves congestion pressure while honoring safety constraints.
+- **Session History & JSON Export:** Dropdown to review past evaluations and button to export full JSON reports.
+
+

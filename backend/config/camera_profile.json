@@ -162,14 +162,14 @@
     }
   ],
   "timing": {
-    "min_green": 10,
+    "min_green": 5,
     "max_green": 60,
-    "yellow_dur": 3,
-    "pedestrian_yellow_dur": 10,
-    "clearance": 2,
+    "yellow_dur": 1,
+    "pedestrian_yellow_dur": 2,
+    "clearance": 0,
     "max_wait_seconds": 30.0,
-    "eval_interval": 2.0,
-    "demand_switch_threshold": 1.25
+    "eval_interval": 0.5,
+    "demand_switch_threshold": 1.1
   },
   "vision_mode": "tracking",
   "snapshot_interval": 5.0

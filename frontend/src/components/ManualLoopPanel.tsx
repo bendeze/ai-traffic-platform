@@ -1,5 +1,6 @@
 import React from 'react';
 import { SignalPhase } from '../types';
+import { Play, RotateCw, Pause } from 'lucide-react';
 
 interface ManualLoopPanelProps {
   currentPhase: SignalPhase;
@@ -121,7 +122,9 @@ export default function ManualLoopPanel({
             onClick={startManualLoop}
             className="w-full btn-action bg-zinc-900 text-white dark:bg-white dark:text-black font-extrabold tracking-wider py-1.5 shadow-sm focus-visible:outline-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white"
           >
-            ▶ VALIDATE & START MANUAL LOOP ({manualA}s ➔ {manualB}s)
+            <span className="inline-flex items-center justify-center gap-1.5">
+              <Play className="w-3.5 h-3.5 fill-current" /> VALIDATE & START MANUAL LOOP ({manualA}s → {manualB}s)
+            </span>
           </button>
         ) : (
           <div className="grid grid-cols-[1.4fr_1fr] gap-1">
@@ -129,13 +132,17 @@ export default function ManualLoopPanel({
               onClick={startManualLoop}
               className="btn-action py-1 text-xs"
             >
-              ↻ UPDATE LOOP ({manualA}s / {manualB}s)
+              <span className="inline-flex items-center justify-center gap-1">
+                <RotateCw className="w-3 h-3" /> UPDATE LOOP ({manualA}s / {manualB}s)
+              </span>
             </button>
             <button
               onClick={stopManualLoop}
               className="btn-action py-1 text-xs bg-red-100 border-red-400 text-red-600 hover:bg-red-200 dark:bg-red-950/60 dark:border-red-600 dark:text-red-300"
             >
-              ⏹ PAUSE LOOP
+              <span className="inline-flex items-center justify-center gap-1">
+                <Pause className="w-3 h-3 fill-current" /> PAUSE LOOP
+              </span>
             </button>
           </div>
         )}

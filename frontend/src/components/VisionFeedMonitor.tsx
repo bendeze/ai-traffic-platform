@@ -144,7 +144,7 @@ export default function VisionFeedMonitor({
                 <p className="capitalize font-mono text-[9px] text-zinc-500 dark:text-zinc-400 leading-relaxed mb-4">
                   {isSumoRunning
                     ? 'Dock External SUMO-GUI Window Over This Viewport For Real-Time Side-by-Side Simulation'
-                    : 'Click ▶ Start Above To Launch The Traffic Flow & External SUMO-GUI Window'}
+                    : 'Click Start Above To Launch The Traffic Flow & External SUMO-GUI Window'}
                 </p>
 
                 <div className="flex items-center gap-3 font-mono text-[0.7rem] text-zinc-400 border border-zinc-200 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/50 px-3 py-1.5 rounded-sm">

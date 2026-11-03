@@ -1,4 +1,4 @@
-import time
+import time, os
 from typing import Dict, List, Optional
 try:
     import traci
@@ -40,6 +40,8 @@ class SUMOPerceptionAdapter:
     def __init__(self, connection=sumo_conn):
         self.conn = connection
         self._last_metrics: Dict[str, dict] = {}
+        self._lane_lengths: Dict[str, float] = {}
+        self._veh_types: Dict[str, tuple] = {}
         self._cached_states: Dict[str, ApproachState] = {
             a: ApproachState(name=a) for a in self.APPROACH_EDGES
         }
@@ -71,17 +73,41 @@ class SUMOPerceptionAdapter:
                 breakdown = {"car": 0, "truck": 0, "motorcycle": 0, "bus": 0, "ambulance": 0}
                 has_ambulance = False
                 max_waiting = 0.0
+                queue_count = 0
+                approaching_count = 0
 
                 for vid in veh_ids:
-                    vtype = str(traci.vehicle.getTypeID(vid)).lower()
-                    vclass = str(traci.vehicle.getVehicleClass(vid)).lower()
+                    if vid in self._veh_types:
+                        vtype, vclass = self._veh_types[vid]
+                    else:
+                        vtype = str(traci.vehicle.getTypeID(vid)).lower()
+    
+                        self._veh_types[vid] = (vtype, vclass)
+
                     wtime = float(traci.vehicle.getWaitingTime(vid))
+                    speed = float(traci.vehicle.getSpeed(vid))
+                    try:
+                        lane_id = traci.vehicle.getLaneID(vid)
+                        if lane_id not in self._lane_lengths:
+                            self._lane_lengths[lane_id] = traci.lane.getLength(lane_id)
+                        lane_len = self._lane_lengths[lane_id]
+                        lane_pos = traci.vehicle.getLanePosition(vid)
+                        dist_to_stop = max(0.0, lane_len - lane_pos)
+                    except Exception:
+                        dist_to_stop = 999.0
+
+                    if speed < 1.5 and dist_to_stop <= 80.0:
+                        queue_count += 1
+                    elif speed >= 1.5 and dist_to_stop <= 50.0:
+                        approaching_count += 1
                     if wtime > max_waiting:
                         max_waiting = wtime
 
                     if "ambulance" in vtype or vclass == "emergency" or "ambulance" in vid.lower():
                         breakdown["ambulance"] += 1
-                        has_ambulance = True
+                        preempt_dist = float(os.getenv("AMBULANCE_PREEMPTION_DISTANCE", 55.0))
+                        if dist_to_stop <= preempt_dist:
+                            has_ambulance = True
                     elif "bus" in vtype or vclass == "bus":
                         breakdown["bus"] += 1
                     elif "truck" in vtype or vclass == "truck":
@@ -102,7 +128,8 @@ class SUMOPerceptionAdapter:
 
                 st = ApproachState(name=approach)
                 st.vehicle_count = veh_count
-                st.queue_estimate = max(int(round(weighted_queue)), halting_count)
+                st.queue_estimate = max(halting_count, queue_count)
+                st.approaching_count = approaching_count
                 st.waiting_time = max_waiting
                 st.breakdown = breakdown
                 st.has_ambulance = has_ambulance
@@ -124,6 +151,12 @@ class SUMOPerceptionAdapter:
             except Exception as e:
                 states[approach] = self._cached_states.get(approach, ApproachState(name=approach))
 
+        if len(self._veh_types) > 600:
+            try:
+                active_ids = set(traci.vehicle.getIDList())
+                self._veh_types = {k: v for k, v in self._veh_types.items() if k in active_ids}
+            except Exception:
+                pass
         self._cached_states = states
         return states
 
@@ -136,6 +169,8 @@ class SUMOPerceptionAdapter:
     def reset(self):
         """Resets cached approach states and telemetry metrics."""
         self._last_metrics = {}
+        self._lane_lengths.clear()
+        self._veh_types.clear()
         self._cached_states = {
             a: ApproachState(name=a) for a in self.APPROACH_EDGES
         }

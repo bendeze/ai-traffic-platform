@@ -8,6 +8,7 @@ from vision.pipeline import Detection
 class ApproachState:
     name: str
     queue_estimate: int = 0
+    approaching_count: int = 0
     vehicle_count: int = 0
     waiting_time: float = 0.0
     arrivals: int = 0

@@ -18,6 +18,7 @@ from api.routes import (
     serial_router,
     config_router,
     websocket_router,
+    evaluation_router,
 )
 
 @asynccontextmanager
@@ -57,6 +58,7 @@ def create_app() -> FastAPI:
     app.include_router(serial_router)
     app.include_router(config_router)
     app.include_router(websocket_router)
+    app.include_router(evaluation_router)
 
     return app
 

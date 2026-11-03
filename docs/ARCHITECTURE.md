@@ -194,3 +194,28 @@ The intersection traffic light controller (`center`) coordinates 20 distinct lin
 - **Link 17:** East pedestrian zebra crossing (`:center_c1`)
 - **Link 18:** South pedestrian zebra crossing (`:center_c2`)
 - **Link 19:** West pedestrian zebra crossing (`:center_c3`)
+
+
+---
+
+## 6. Automated Simulation Evaluation Architecture (A/B Benchmark)
+
+The evaluation system uses an automated dual-phase pipeline to generate quantifiable, non-destructive performance comparisons:
+
+```mermaid
+flowchart TD
+    START["User clicks 'Evaluate'"] --> PREP["Phase 1: Validation & Session Init\n- Validate SUMO & scenario files\n- Generate evaluation_XXX session folder\n- Lock seed (42), route demand, and network"]
+    
+    PREP --> RUN_MANUAL["Phase 2: Manual Mode Simulation\n- Launch SUMO-GUI with programID=0\n- Predefined fixed-time phase switching\n- Output statistics.xml, tripinfo.xml, summary.xml"]
+    
+    RUN_MANUAL --> RUN_ADAPTIVE["Phase 3: Adaptive AI Simulation\n- Launch SUMO-GUI with identical demand & seed\n- AI Decision Engine + Safety Manager active\n- Output statistics.xml, tripinfo.xml, summary.xml"]
+    
+    RUN_ADAPTIVE --> PROCESS["Phase 4: XML Parsing & Analytics Processing\n- Parse trip duration, waiting time, speed, queue lengths\n- Calculate diffs and % improvement\n- Generate 6 Recharts datasets + narrative verdict\n- Save evaluations/evaluation_XXX/results.json"]
+    
+    PROCESS --> NAV["Phase 5: Auto-Navigation to Web Dashboard\n- Redirect to /evaluation/:evaluationId\n- Display KPI cards, comparative tables, and Recharts graphs"]
+```
+
+### Key Analytical Guarantees:
+1. **Deterministic Traffic Demand:** Both simulations use identical random seeds (`42`), vehicle routes (`intersection.rou.xml`), and network topology (`intersection.net.xml`), ensuring fair and mathematically sound comparison.
+2. **Scientific Metric Tracking:** Never substitutes zeroes for missing metrics without explicit flags; extracts raw completed trip files directly from SUMO engine outputs.
+3. **Non-Destructive Persistence:** Historical runs are archived sequentially (`evaluation_001`, `evaluation_002`, ...) without overwriting past data.

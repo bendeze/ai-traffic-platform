@@ -4,7 +4,7 @@ from traffic.state_estimator import ApproachState
 
 class DecisionEngine:
     """
-    Traffic Decision Engine with Strict Priority Hierarchy:
+    Traffic Decision Engine with Strict Priority Hierarchy & Proportional Green Allocation:
 
     1. EMERGENCY AMBULANCE PREEMPTION (Top Priority)
        - If ambulance on Phase A & light is B: switch immediately via standard yellow.
@@ -12,19 +12,24 @@ class DecisionEngine:
        - Overrides minimum green and fairness.
 
     2. PEDESTRIAN CROSSING (Safety Window)
-       - When a pedestrian request occurs, yellow light holds for pedestrian_yellow_dur (10s)
-         before transitioning to stop traffic safely.
+       - When pedestrian request is triggered on an active moving green road:
+         must put it on YELLOW first (warning cars to stop) then lock RED for 10s.
 
-    3. FAIRNESS CAP (Configurable, default 30s Wait)
-       - No approach/phase is allowed to wait for more than max_wait_seconds.
+    3. GAP-OUT / EMPTY-GREEN EARLY TRUNCATION (Anti-Waste)
+       - If current green phase has cleared its queue (0 waiting vehicles) and minimum
+         green has elapsed, immediately truncate green and hand right-of-way to waiting roads.
 
-    4. DEMAND PRIORITY (East-West vs North-South)
-       - Phase with heavier traffic queue (cars, trucks, motorcycles, buses)
-         gets priority if it exceeds demand_switch_threshold.
+    4. PROPORTIONAL DEMAND ALLOCATION
+       - We give more time for the phase with many cars than the other.
+       - As we control the traffic, we do not wait until ALL cars on a busy phase clear;
+         instead, the busiest phase gets enough time to clear many cars, and the phase
+         with fewer cars gets enough time to let most of them pass without starvation.
 
-    5. MANUAL TIMED CYCLING
-       - In manual mode, each phase runs for its user-configured seconds (default 30s).
-       - Automatically passes to the next phase after its timing expires.
+    5. NON-LINEAR WAIT PRESSURE (Anti-Starvation)
+       - Quadratic wait time pressure (wait^1.6) aggressively breaks long queues.
+
+    6. VEHICLE CLASSIFICATION WEIGHTING
+       - Higher passenger & inertia weighting for buses (3.0x) and trucks (2.0x).
     """
 
     def __init__(self, settings):
@@ -45,9 +50,10 @@ class DecisionEngine:
         self.manual_durations["A"] = max(5, int(phase_a))
         self.manual_durations["B"] = max(5, int(phase_b))
 
-    def decide(self, state: Dict[str, ApproachState], ped_requests: dict) -> dict:
+    def decide(self, state: Dict[str, ApproachState], ped_requests: dict, now: Optional[float] = None) -> dict:
         t = self.settings.timing
-        now     = time.time()
+        if now is None:
+            now = time.time()
         elapsed = now - self._phase_start
         other   = "B" if self._last_phase == "A" else "A"
 
@@ -100,23 +106,22 @@ class DecisionEngine:
                 if self.safety_ref:
                     self.safety_ref.end_emergency_hold()
 
-        # ── 2. PEDESTRIAN 10s RED OVERRIDE ───────────────────────────────────
-        # When a pedestrian request is queued, immediately trigger the 10-second RED lock!
+        # ── 2. PEDESTRIAN REQUEST: Yellow first, then 10s RED ─────────────────
         ped_needed = [a for a, req in ped_requests.items() if req]
         if ped_needed:
             app = ped_needed[0]
-            target_red_phase = "A" if app in self.settings.phases.get("A", []) else "B"
-            for a in self.settings.phases.get(target_red_phase, []):
+            for a in self.settings.phases.get("A", []) + self.settings.phases.get("B", []):
                 ped_requests[a] = False
             if self.safety_ref:
                 self.safety_ref.trigger_pedestrian_red(app, duration=10.0)
             self.last_pedestrian_approach = app
-            self.last_reason = f"pedestrian_crossing_{app.upper()}_10s_RED"
+            self.last_reason = f"pedestrian_crossing_{app.upper()}_yellow_then_red"
+            target_red_phase = "A" if app in self.settings.phases.get("A", []) else "B"
             active_green_phase = "B" if target_red_phase == "A" else "A"
             return {
                 "phase": active_green_phase,
                 "duration": 10,
-                "yellow_dur": t.yellow_dur,
+                "yellow_dur": getattr(t, "pedestrian_yellow_dur", 3),
                 "reason": self.last_reason
             }
 
@@ -134,7 +139,6 @@ class DecisionEngine:
             # Must wait for the currently running timer to finish first!
             target_dur = self._active_phase_allocated_dur
             if elapsed >= target_dur:
-                # Timer expired! Automatically transition to next phase with its configured duration
                 next_dur = self.manual_durations.get(other, 30)
                 self.last_reason = f"manual_loop_cycle_to_{other}"
                 return {
@@ -152,70 +156,199 @@ class DecisionEngine:
                     "reason": f"manual_loop_phase_{self._last_phase}"
                 }
 
-        # ── Compute Vehicle Demand Scores (Cars, Trucks, Bikes, Buses) ────────
-        scores = {}
+        # ── 4. VEHICLE CLASSIFICATION & QUEUE WEIGHTING ───────────────────────
+        type_weights = {
+            "bus": getattr(t, "weight_bus", 3.0),
+            "truck": getattr(t, "weight_truck", 2.0),
+            "car": getattr(t, "weight_car", 1.0),
+            "motorcycle": getattr(t, "weight_motorcycle", 0.8),
+            "bicycle": getattr(t, "weight_bicycle", 0.5),
+        }
+        raw_queues = {}
+        weighted_queues = {}
+        wait_times = {}
+        approaching_demand = {}
+
         for phase, approaches in self.settings.phases.items():
-            q_sum = sum(state[a].queue_estimate for a in approaches if a in state)
-            w_max = max((state[a].waiting_time for a in approaches if a in state), default=0.0)
-            scores[phase] = q_sum * 2.5 + w_max * 0.4
+            raw_q = sum(state[a].queue_estimate for a in approaches if a in state)
+            raw_queues[phase] = raw_q
+            appr_q = sum(getattr(state[a], "approaching_count", 0) for a in approaches if a in state)
+            approaching_demand[phase] = appr_q
 
-        # ── 3. FAIRNESS CAP: Anti-Starvation Wait Limit ────────────────────────
-        other_waited = now - self._last_green.get(other, now)
-        if other_waited >= t.max_wait_seconds:
-            self.last_reason = f"fairness_cap_waited_{int(other_waited)}s"
+            # If raw_q is 0 (no vehicles stopped or queuing at the light), queue is strictly 0!
+            # Never let far-away cruising cars falsely prevent gap-out!
+            if raw_q <= getattr(t, "gap_out_threshold", 0.2):
+                weighted_queues[phase] = 0.0
+            else:
+                w_factor = 1.0
+                total_veh = sum(state[a].vehicle_count for a in approaches if a in state)
+                if total_veh > 0:
+                    w_sum = sum(
+                        sum(type_weights.get(vtype, 1.0) * cnt for vtype, cnt in (getattr(state[a], "breakdown", {}) or {}).items())
+                        for a in approaches if a in state
+                    )
+                    w_factor = max(1.0, w_sum / total_veh)
+                weighted_queues[phase] = float(raw_q) * w_factor
+
+            wait_times[phase] = max((state[a].waiting_time for a in approaches if a in state), default=0.0)
+
+        # Active demand on green combines remaining queue + vehicles actively approaching/crossing within 50m
+        curr_q = weighted_queues.get(self._last_phase, 0.0)
+        curr_appr = approaching_demand.get(self._last_phase, 0.0)
+        curr_demand = curr_q + curr_appr
+
+        other_q = weighted_queues.get(other, 0.0)
+        other_appr = approaching_demand.get(other, 0.0)
+        other_demand = other_q + other_appr
+
+        gap_thresh = getattr(t, "gap_out_threshold", 0.2)
+
+        # Non-linear quadratic wait penalty:
+        scores = {}
+        for phase in self.settings.phases:
+            q_part = (weighted_queues[phase] + approaching_demand.get(phase, 0.0)) * 2.5
+            w_part = (wait_times[phase] ** 1.6) * 0.15
+            scores[phase] = q_part + w_part
+
+        curr_score = scores.get(self._last_phase, 0.0)
+        other_score = scores.get(other, 0.0)
+
+        # ── 5. PROPORTIONAL GREEN ALLOCATION ─────────────────────────────────
+        allocated_green = self._calc_proportional_duration(curr_demand, other_demand)
+
+        # ── 6. ZERO-CAR CONTINUATION: KEEP GREEN ON THE ROAD WITH CARS ────────
+        # If the other road has NO cars (other_demand <= gap_thresh):
+        # Continue prioritizing the active road with cars! Never switch to an empty road.
+        if other_demand <= gap_thresh and curr_demand > gap_thresh:
+            self.last_reason = f"priority_continuation_other_has_no_cars_phase_{self._last_phase}"
             return {
-                "phase": other,
-                "duration": self._adaptive_duration(scores[other]),
+                "phase": self._last_phase,
+                "duration": max(1, int(round(allocated_green - elapsed))),
                 "yellow_dur": t.yellow_dur,
                 "reason": self.last_reason
             }
 
-        # ── 4. MAX GREEN CAP ──────────────────────────────────────────────────
-        if elapsed >= t.max_green:
-            self.last_reason = "max_green_limit_reached"
+        # ── 7. IMMEDIATE GAP-OUT: EMPTY GREEN EARLY TRUNCATION ────────────────
+        # If current green road has NO cars (curr_demand <= gap_thresh)
+        # and the other road HAS cars waiting (other_demand > gap_thresh):
+        # IMMEDIATELY hand green to the road with cars! (Never sit on empty green).
+        if curr_demand <= gap_thresh and other_demand > gap_thresh:
+            if elapsed >= 2.0:
+                self.last_reason = f"gap_out_empty_green_switch_to_{other}"
+                return {
+                    "phase": other,
+                    "duration": self._calc_proportional_duration(other_demand, curr_demand),
+                    "yellow_dur": t.yellow_dur,
+                    "reason": self.last_reason
+                }
+
+        # ── 8. CRITICAL QUEUE RELIEF (ANTI-GRIDLOCK HARD CAP) ─────────────────
+        # If opposing queue reaches critical threshold (>= 10 cars), NEVER let it sit!
+        # Switch immediately to drain it before a massive queue can form.
+        if other_demand >= 10.0 and elapsed >= t.min_green:
+            self.last_reason = f"critical_queue_relief_switch_to_{other}"
             return {
                 "phase": other,
-                "duration": self._adaptive_duration(scores[other]),
+                "duration": self._calc_proportional_duration(other_demand, curr_demand),
                 "yellow_dur": t.yellow_dur,
                 "reason": self.last_reason
             }
 
-        # ── 5. MINIMUM GREEN PROTECTION ───────────────────────────────────────
+        # ── 9. HEAVY QUEUE IMBALANCE: GIVE PRIORITY TO LARGER QUEUE ───────────
+        # When opposing phase has a huge queue and current phase is light, switch early!
+        if other_demand >= (curr_demand * 2.0) and other_demand >= 3.0 and elapsed >= 3.0:
+            self.last_reason = f"queue_priority_switch_to_larger_queue_{other}"
+            return {
+                "phase": other,
+                "duration": self._calc_proportional_duration(other_demand, curr_demand),
+                "yellow_dur": t.yellow_dur,
+                "reason": self.last_reason
+            }
+
+        # ── 9. MINIMUM GREEN PROTECTION (FOR MOVING TRAFFIC) ───────────────────
         if elapsed < t.min_green:
             self.last_reason = "min_green_enforced"
             return {
                 "phase": self._last_phase,
-                "duration": t.min_green,
+                "duration": int(round(allocated_green)),
                 "yellow_dur": t.yellow_dur,
                 "reason": self.last_reason
             }
 
-        # ── 6. DEMAND PRIORITY (East-West vs North-South) ──────────────────────
-        current_score = scores[self._last_phase]
-        other_score   = scores[other]
+        # ── 10. FAIRNESS CAP (Anti-Starvation Maximum Wait) ────────────────────
+        other_waited = now - self._last_green.get(other, now)
+        if other_waited >= t.max_wait_seconds and other_demand > gap_thresh:
+            # ANTI-JAM PROTECTION: Never interrupt a heavy arterial that is actively draining
+            # a large backlog unless it has reached full MAX_GREEN or opposing queue is also severe
+            if curr_demand >= 5.0 and curr_demand >= (other_demand * 1.5) and elapsed < t.max_green:
+                pass  # Keep draining heavy queue until clear or max_green reached!
+            else:
+                self.last_reason = f"fairness_cap_waited_{int(other_waited)}s"
+                return {
+                    "phase": other,
+                    "duration": self._calc_proportional_duration(other_demand, curr_demand),
+                    "yellow_dur": t.yellow_dur,
+                    "reason": self.last_reason
+                }
 
-        if other_score > (current_score * t.demand_switch_threshold):
-            self.last_reason = f"demand_priority_switch_to_{other}"
+        # ── 11. PROPORTIONAL QUOTA EXPIRATION ─────────────────────────────────
+        # Once the busy phase has been given its allocated time to pass many cars,
+        # switch to the other phase so its waiting queue can clear.
+        if elapsed >= allocated_green and other_demand > gap_thresh:
+            # ANTI-JAM EXTENSION: If current phase still has heavy residual queue (>= 4 cars)
+            # and hasn't reached MAX_GREEN, extend green to finish clearing!
+            if curr_demand >= 4.0 and elapsed < t.max_green:
+                pass  # Dynamically extend green to prevent residual queue carryover
+            else:
+                self.last_reason = f"proportional_quota_reached_switch_to_{other}"
+                return {
+                    "phase": other,
+                    "duration": self._calc_proportional_duration(other_demand, curr_demand),
+                    "yellow_dur": t.yellow_dur,
+                    "reason": self.last_reason
+                }
+
+        # ── 12. HEAVY DEMAND IMBALANCE SWITCH ─────────────────────────────────
+        if other_score > (curr_score * t.demand_switch_threshold) and elapsed >= t.min_green:
+            self.last_reason = f"demand_imbalance_switch_to_{other}"
             return {
                 "phase": other,
-                "duration": self._adaptive_duration(other_score),
+                "duration": self._calc_proportional_duration(other_demand, curr_demand),
                 "yellow_dur": t.yellow_dur,
                 "reason": self.last_reason
             }
 
-        # Maintain green on current phase if traffic demand is satisfied
-        self.last_reason = f"traffic_flow_steady_phase_{self._last_phase}"
+        # Maintain green on current phase
+        rem_allocated = max(1, int(round(allocated_green - elapsed)))
+        self.last_reason = f"proportional_flow_steady_phase_{self._last_phase}"
         return {
             "phase": self._last_phase,
-            "duration": self._adaptive_duration(current_score),
+            "duration": rem_allocated,
             "yellow_dur": t.yellow_dur,
             "reason": self.last_reason
         }
 
-    def notify_phase_started(self, phase: str, duration: Optional[int] = None):
+    def _calc_proportional_duration(self, target_q: float, opposing_q: float) -> int:
+        t = self.settings.timing
+        tot = target_q + opposing_q
+        if tot <= 0:
+            return t.min_green
+
+        if target_q >= opposing_q:
+            ratio = target_q / tot
+            dur = int(round(t.min_green + (ratio ** 0.8) * (t.max_green - t.min_green)))
+            return max(15, min(t.max_green, dur))
+        else:
+            # Lighter phase with fewer vehicles gets much less time (tightly bounded)
+            needed = int(round(3.0 + target_q * 1.5))
+            return max(t.min_green, min(12, needed))
+
+    def notify_phase_started(self, phase: str, duration: Optional[int] = None, now: Optional[float] = None):
+        if now is None:
+            now = time.time()
         self._last_phase = phase
-        self._phase_start = time.time()
-        self._last_green[phase] = time.time()
+        self._phase_start = now
+        self._last_green[phase] = now
         self._active_phase_allocated_dur = duration if duration is not None else self.manual_durations.get(phase, 30)
 
     def _adaptive_duration(self, score: float) -> int:

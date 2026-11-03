@@ -8,5 +8,6 @@ export { default as PhaseStatusBox } from './PhaseStatusBox';
 export { default as ManualLoopPanel } from './ManualLoopPanel';
 export { default as ApproachTelemetryGrid } from './ApproachTelemetryGrid';
 export { default as Footer } from './Footer';
+export { default as EvaluationPage } from './EvaluationPage';
+export { default as EvaluationHeader } from './EvaluationHeader';
 export { ThemeToggle } from './ThemeToggle';
-

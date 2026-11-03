@@ -78,8 +78,9 @@ class BenchmarkRunner:
                         existing.has_ambulance = st.has_ambulance
 
                 # FSM makes decision
-                proposal = engine.decide(estimator.get_state(), ped_requests)
-                safety.apply(proposal)
+                proposal = engine.decide(estimator.get_state(), ped_requests, now=sim_time)
+                safety.apply(proposal, now=sim_time)
+                safety.update(sim_time)
 
                 # Send authoritative signals to SUMO
                 signals = safety.get_approach_states()

@@ -3,7 +3,16 @@
  * Centralized, typed HTTP client for backend endpoints.
  */
 
-import { SerialPortsResponse, EnvironmentType, OperatingMode, VisionMode, ApproachName } from '../types';
+import {
+  SerialPortsResponse,
+  EnvironmentType,
+  OperatingMode,
+  VisionMode,
+  ApproachName,
+  EvaluationStatusResponse,
+  EvaluationResult,
+  EvaluationHistoryItem,
+} from '../types';
 
 const getHost = () => {
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
@@ -140,5 +149,47 @@ export const apiClient = {
     const res = await fetch(`${API_BASE}/simulation/sumo/speed/${factor}`, { method: 'POST' });
     return res.json();
   },
-};
 
+  // SUMO Evaluation Endpoints
+  async startEvaluation(
+    duration: number = 3600.0,
+    gui: boolean = true,
+    seed: number = 42,
+    scale: string = 'standard'
+  ): Promise<{ status: string; evaluationId: string; message: string }> {
+    const res = await fetch(`${API_BASE}/simulation/evaluate/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ duration, gui, seed, scale }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Failed to start evaluation' }));
+      throw new Error(err.detail || 'Failed to start evaluation');
+    }
+    return res.json();
+  },
+
+  async stopEvaluation(): Promise<{ status: string; message: string }> {
+    const res = await fetch(`${API_BASE}/simulation/evaluate/stop`, { method: 'POST' });
+    return res.json();
+  },
+
+  async getEvaluationStatus(): Promise<EvaluationStatusResponse> {
+    const res = await fetch(`${API_BASE}/simulation/evaluate/status`);
+    return res.json();
+  },
+
+  async getEvaluationResults(evaluationId: string): Promise<EvaluationResult> {
+    const res = await fetch(`${API_BASE}/simulation/evaluate/results/${encodeURIComponent(evaluationId)}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Results not found' }));
+      throw new Error(err.detail || 'Results not found');
+    }
+    return res.json();
+  },
+
+  async getEvaluationHistory(): Promise<{ evaluations: EvaluationHistoryItem[] }> {
+    const res = await fetch(`${API_BASE}/simulation/evaluate/history`);
+    return res.json();
+  },
+};

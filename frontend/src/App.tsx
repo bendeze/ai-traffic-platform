@@ -18,9 +18,30 @@ import {
   PhaseStatusBox,
   ApproachTelemetryGrid,
   Footer,
+  EvaluationPage,
 } from './components';
 
 export default function App() {
+  // Path-based URL routing for /evaluation/:evaluationId
+  const getInitialEvaluationId = (): string | null => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/evaluation/')) {
+      const parts = window.location.pathname.split('/');
+      return parts[2] || null;
+    }
+    return null;
+  };
+
+  const [activeEvaluationId, setActiveEvaluationId] = useState<string | null>(getInitialEvaluationId());
+
+  // Listen to browser popstate (back/forward navigation)
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveEvaluationId(getInitialEvaluationId());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Runtime operational state
   const [log, setLog] = useState<string>('SYSTEM INITIALIZED');
   const handleLog = useCallback((msg: string) => setLog(msg), []);
@@ -43,8 +64,65 @@ export default function App() {
 
   // Modal & Simulation Settings
   const [showCalibrate, setShowCalibrate] = useState<boolean>(false);
-  const [sumoGui, setSumoGui] = useState<boolean>(false);
+  const [sumoGui, setSumoGui] = useState<boolean>(true); // Default SUMO GUI enabled as requested
   const [sumoSpeed, setSumoSpeed] = useState<number>(1.0);
+
+  // Automated Simulation Evaluation State
+  const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
+  const [evalProgress, setEvalProgress] = useState<number>(0);
+  const [evalMessage, setEvalMessage] = useState<string>('');
+  const [evalScale, setEvalScale] = useState<string>('standard');
+  const [hasEvaluationResult, setHasEvaluationResult] = useState<boolean>(false);
+  const [latestEvaluationId, setLatestEvaluationId] = useState<string | null>(null);
+
+  // Check initial evaluation status on startup
+  useEffect(() => {
+    apiClient
+      .getEvaluationStatus()
+      .then((st) => {
+        setIsEvaluating(st.isRunning);
+        setEvalProgress(st.progress);
+        setEvalMessage(st.message);
+        setHasEvaluationResult(st.hasResult);
+        if (st.latestEvaluationId) {
+          setLatestEvaluationId(st.latestEvaluationId);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Polling loop while evaluation is running
+  useEffect(() => {
+    if (!isEvaluating) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const st = await apiClient.getEvaluationStatus();
+        setIsEvaluating(st.isRunning);
+        setEvalProgress(st.progress);
+        setEvalMessage(st.message);
+        setHasEvaluationResult(st.hasResult);
+
+        if (st.phase === 'completed') {
+          const targetId = st.evaluationId || st.latestEvaluationId;
+          if (targetId) {
+            setLatestEvaluationId(targetId);
+            setLog(`EVALUATION ${targetId} COMPLETED: NAVIGATING TO REPORT...`);
+            window.history.pushState({}, '', `/evaluation/${targetId}`);
+            setActiveEvaluationId(targetId);
+          }
+          setIsEvaluating(false);
+        } else if (st.phase === 'failed') {
+          setLog(`EVALUATION FAILED: ${st.error || 'Unknown error'}`);
+          setIsEvaluating(false);
+        }
+      } catch (err) {
+        console.error('Failed to poll evaluation status:', err);
+      }
+    }, 800);
+
+    return () => clearInterval(interval);
+  }, [isEvaluating]);
 
   // Sync state from server telemetry updates
   useEffect(() => {
@@ -112,6 +190,48 @@ export default function App() {
 
   // ── Actions & Handlers ─────────────────────────────────────────────────────
 
+  const handleStartEvaluation = async () => {
+    if (isEvaluating) return;
+    try {
+      if (isSumoRunning) {
+        setLog('STOPPING REGULAR SIMULATION TO BEGIN EVALUATION RUN...');
+        try {
+          await apiClient.stopSumo();
+          await new Promise((r) => setTimeout(r, 600));
+        } catch {}
+      }
+      setLog(`LAUNCHING AUTOMATED SIMULATION EVALUATION (SCALE: ${evalScale.toUpperCase()})...`);
+      const res = await apiClient.startEvaluation(3600.0, sumoGui, 42, evalScale);
+      setIsEvaluating(true);
+      setEvalProgress(5.0);
+      setEvalMessage(`Preparing evaluation session ${res.evaluationId}...`);
+      setLog(`EVALUATION SESSION ${res.evaluationId} STARTED.`);
+    } catch (err: any) {
+      setLog(`EVALUATION ERROR: ${err.message || 'Failed to start'}`);
+      alert(`Could not start evaluation: ${err.message}`);
+    }
+  };
+
+  const handleStopEvaluation = async () => {
+    try {
+      await apiClient.stopEvaluation();
+      setLog('EVALUATION CANCELLATION REQUESTED');
+    } catch {
+      setLog('FAILED TO CANCEL EVALUATION');
+    }
+  };
+
+  const handleViewLatestEvaluation = () => {
+    const targetId = latestEvaluationId || 'evaluation_001';
+    window.history.pushState({}, '', `/evaluation/${targetId}`);
+    setActiveEvaluationId(targetId);
+  };
+
+  const handleBackToSimulation = () => {
+    window.history.pushState({}, '', '/');
+    setActiveEvaluationId(null);
+  };
+
   const startManualLoop = async () => {
     try {
       const res = await apiClient.startManualLoop(manualA, manualB, 'A');
@@ -148,93 +268,69 @@ export default function App() {
     setMode(newMode);
     try {
       await apiClient.switchMode(newMode);
-      setLog(`SIGNAL MODE: ${newMode.toUpperCase()}`);
+      setLog(`SWITCHED MODE: ${newMode.toUpperCase()}`);
     } catch {
       setLog('MODE SWITCH FAILED');
     }
   };
 
-  const requestPedestrian = async (approach: ApproachName) => {
-    setActivePedestrian(approach);
+  const switchEnvironment = async (env: EnvironmentType) => {
     try {
-      await apiClient.requestPedestrian(approach);
-      const phaseName = (approach === 'north' || approach === 'south') ? 'NORTH & SOUTH' : 'EAST & WEST';
-      setLog(`PEDESTRIAN ACTIVE: ${phaseName} LOCKED ON RED FOR 10s`);
-      setTimeout(() => setActivePedestrian(null), 10000);
+      await apiClient.switchEnvironment(env);
+      setActiveEnvironment(env);
+      setLog(`ENVIRONMENT SWITCHED: ${env.toUpperCase()}`);
     } catch {
-      setActivePedestrian(null);
-      setLog('REQUEST REJECTED');
-    }
-  };
-
-  const triggerAmbulance = async (approach: ApproachName) => {
-    try {
-      await apiClient.triggerAmbulance(approach);
-      setLog(`EMERGENCY: AMBULANCE DISPATCHED ON ${approach.toUpperCase()}!`);
-    } catch {
-      setLog('AMBULANCE TRIGGER ERROR');
-    }
-  };
-
-  const clearAmbulance = async () => {
-    try {
-      await apiClient.clearAmbulance();
-      setLog('AMBULANCE CLEARED — RESUMING ADAPTIVE FLOW');
-    } catch {
-      setLog('ERROR CLEARING AMBULANCE');
+      setLog('ENVIRONMENT SWITCH FAILED');
     }
   };
 
   const setSource = async (source: string) => {
-    setActiveEnvironment('video');
-    setVideoSource(source === 'webcam' ? 'webcam' : 'upload');
+    setVideoSource('webcam');
     try {
       await apiClient.setSource(source);
-      setLog(`FEED INPUT: ${source.toUpperCase()}`);
+      setLog('WEBCAM SOURCE SELECTED');
     } catch {
-      setLog('FEED SELECTION FAILED');
-    }
-  };
-
-  const stopFeed = async () => {
-    try {
-      await apiClient.stopFeed();
-      setLog('FEED PAUSED');
-    } catch {
-      setLog('FEED HALT ERROR');
+      setLog('FAILED TO SET WEBCAM');
     }
   };
 
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setActiveEnvironment('video');
     setVideoSource('upload');
-    setLog(`UPLOADING ${file.name.toUpperCase()}...`);
+    setLog(`UPLOADING: ${file.name}...`);
     try {
-      await apiClient.uploadVideo(file);
-      setLog(`PLAYBACK STARTED: ${file.name.toUpperCase()}`);
+      const d = await apiClient.uploadVideo(file);
+      if (d.status === 'ok') {
+        setLog(`PLAYING: ${file.name}`);
+      } else {
+        setLog(`UPLOAD ERROR: ${d.message}`);
+      }
     } catch {
       setLog('UPLOAD FAILED');
-    } finally {
-      e.target.value = '';
     }
   };
 
-  const connectArduino = async (portToConnect: string) => {
-    const port = portToConnect && portToConnect !== 'none' ? portToConnect : 'auto';
+  const stopFeed = async () => {
     try {
-      setLog(`CONNECTING TO ARDUINO (${port === 'auto' ? 'AUTO-DETECT' : port})...`);
+      await apiClient.stopFeed();
+      setLog('FEED HALTED');
+    } catch {
+      setLog('FAILED TO HALT FEED');
+    }
+  };
+
+  const connectArduino = async (port: string) => {
+    setLog(`CONNECTING ARDUINO ON ${port.toUpperCase()}...`);
+    try {
       const d = await apiClient.connectArduino(port);
-      if (d.status === 'ok') {
-        const detectedPort = d.serial?.port || port;
-        setLog(`ARDUINO CONNECTED ON ${detectedPort}`);
-        fetchSerialPorts();
+      if (d.status === 'connected') {
+        setLog(`ARDUINO CONNECTED ON ${d.port}`);
       } else {
-        setLog(`CONNECT FAILED: ${d.error || 'COULD NOT OPEN SERIAL'}`);
+        setLog(`CONNECT FAILED: ${d.message}`);
       }
     } catch {
-      setLog('SERIAL CONNECT FAILED');
+      setLog('ARDUINO CONNECTION ERROR');
     }
   };
 
@@ -242,66 +338,66 @@ export default function App() {
     try {
       await apiClient.disconnectArduino();
       setLog('ARDUINO DISCONNECTED');
-      fetchSerialPorts();
     } catch {
       setLog('DISCONNECT FAILED');
     }
   };
 
   const testArduinoLeds = async () => {
+    setLog('TESTING 12-LED HARDWARE SEQUENCE...');
     try {
-      if (!isArduinoConnected) {
-        const port = selectedPort && selectedPort !== 'none' ? selectedPort : 'auto';
-        setLog(`CONNECTING TO ARDUINO (${port === 'auto' ? 'AUTO-DETECT' : port}) FIRST...`);
-        const connData = await apiClient.connectArduino(port);
-        if (connData.status !== 'ok') {
-          setLog(`CONNECT FAILED: ${connData.error || 'COULD NOT OPEN SERIAL'}`);
-          return;
-        }
-        setLog(`ARDUINO CONNECTED ON ${connData.serial?.port || port}! TRIGGERING 12-LED HARDWARE DIAGNOSTIC SWEEP...`);
-        fetchSerialPorts();
-        await new Promise((r) => setTimeout(r, 1200));
-      } else {
-        setLog('TRIGGERING 12-LED HARDWARE DIAGNOSTIC SWEEP ON ARDUINO...');
-      }
-
-      await apiClient.testArduinoLeds();
-      setLog('ARDUINO DIAGNOSTIC SWEEP ACTIVE (PINS 2 TO 13)');
-    } catch (err: any) {
-      setLog(`TEST COMMAND ERROR: ${err.message || 'FAILED'}`);
+      const d = await apiClient.testArduinoLeds();
+      setLog(`LED TEST: ${d.message.toUpperCase()}`);
+    } catch {
+      setLog('LED TEST FAILED');
     }
   };
 
-  const switchEnvironment = async (env: EnvironmentType) => {
-    setActiveEnvironment(env);
+  const triggerAmbulance = async (approach: ApproachName) => {
     try {
-      await apiClient.switchEnvironment(env);
-      setLog(`ENVIRONMENT SWITCHED: ${env.toUpperCase()}`);
+      await apiClient.triggerAmbulance(approach);
+      setLog(`AMBULANCE PREEMPTION: ${approach.toUpperCase()} PRIORITY GREEN ACTIVATED`);
     } catch {
-      setLog('ENVIRONMENT SWITCH FAILED');
+      setLog('AMBULANCE TRIGGER FAILED');
     }
   };
 
-  const startSumo = async (gui: boolean = sumoGui) => {
+  const clearAmbulance = async () => {
     try {
-      setLog(`STARTING SUMO SIMULATION (${gui ? 'GUI' : 'HEADLESS'})...`);
-      const res = await apiClient.startSumo(gui, sumoSpeed);
-      if (res?.status === 'ok' || !res?.detail) {
-        setLog(`SUMO SIMULATION ACTIVE (${gui ? 'GUI WINDOW' : 'HEADLESS ENGINE'})`);
-      } else {
-        setLog(`SUMO START FAILED: ${res.detail || 'ERROR'}`);
-      }
+      await apiClient.clearAmbulance();
+      setLog('AMBULANCE CLEARED — AUTONOMOUS FSM RESUMED');
     } catch {
-      setLog('SUMO START REQUEST FAILED');
+      setLog('CLEAR AMBULANCE FAILED');
+    }
+  };
+
+  const requestPedestrian = async (approach: ApproachName) => {
+    setActivePedestrian(approach);
+    try {
+      await apiClient.requestPedestrian(approach);
+      setLog(`PEDESTRIAN CROSSWALK REQUESTED: ${approach.toUpperCase()} (WAITING GREEN CLEARANCE)`);
+    } catch {
+      setLog('PEDESTRIAN REQUEST FAILED');
+    } finally {
+      setTimeout(() => setActivePedestrian(null), 3000);
+    }
+  };
+
+  const startSumo = async (gui: boolean = false) => {
+    try {
+      await apiClient.startSumo(gui, sumoSpeed);
+      setLog(`SUMO SIMULATION STARTED (GUI: ${gui ? 'ON' : 'OFF'})`);
+    } catch {
+      setLog('FAILED TO START SUMO');
     }
   };
 
   const stopSumo = async () => {
     try {
       await apiClient.stopSumo();
-      setLog('SUMO SIMULATION STOPPED');
+      setLog('SUMO SIMULATION TERMINATED');
     } catch {
-      setLog('SUMO STOP FAILED');
+      setLog('FAILED TO STOP SUMO');
     }
   };
 
@@ -310,7 +406,7 @@ export default function App() {
       await apiClient.pauseSumo();
       setLog('SUMO SIMULATION PAUSED');
     } catch {
-      setLog('SUMO PAUSE FAILED');
+      setLog('FAILED TO PAUSE SUMO');
     }
   };
 
@@ -319,33 +415,48 @@ export default function App() {
       await apiClient.resumeSumo();
       setLog('SUMO SIMULATION RESUMED');
     } catch {
-      setLog('SUMO RESUME FAILED');
+      setLog('FAILED TO RESUME SUMO');
     }
   };
 
   const resetSumo = async () => {
     try {
-      setLog('RESETTING SUMO SIMULATION...');
       await apiClient.resetSumo();
-      setLog('SUMO SIMULATION RESET (T=0.0s)');
+      setLog('SUMO SIMULATION RELOADED (t=0.0s)');
     } catch {
-      setLog('SUMO RESET FAILED');
+      setLog('FAILED TO RESET SUMO');
     }
   };
 
-  const updateSumoSpeed = async (factor: number) => {
-    setSumoSpeed(factor);
+  const updateSumoSpeed = async (spd: number) => {
+    setSumoSpeed(spd);
     try {
-      await apiClient.updateSumoSpeed(factor);
-      setLog(`SUMO SIMULATION SPEED SET TO ${factor}x`);
+      await apiClient.updateSumoSpeed(spd);
+      setLog(`SUMO SPEED FACTOR: ${spd}x`);
     } catch {
-      setLog('SPEED UPDATE FAILED');
+      setLog('FAILED TO UPDATE SUMO SPEED');
     }
   };
+
+  // If navigating directly to or active on /evaluation/:id
+  if (activeEvaluationId) {
+    return (
+      <EvaluationPage
+        initialEvaluationId={activeEvaluationId}
+        onBackToSimulation={handleBackToSimulation}
+      />
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-black text-zinc-950 dark:text-white flex flex-col p-6 md:p-8 transition-colors duration-200">
-      {showCalibrate && <Calibrate onClose={() => setShowCalibrate(false)} />}
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 p-4 sm:p-6 lg:p-8 flex flex-col font-sans transition-colors">
+      {/* Calibration Modal */}
+      {showCalibrate && (
+        <Calibrate
+          onClose={() => setShowCalibrate(false)}
+          setLog={setLog}
+        />
+      )}
 
       {/* Top Navigation & Settings Bar */}
       <Header
@@ -399,6 +510,16 @@ export default function App() {
         resetSumo={resetSumo}
         updateSumoSpeed={updateSumoSpeed}
         setLog={setLog}
+        isEvaluating={isEvaluating}
+        evalProgress={evalProgress}
+        evalMessage={evalMessage}
+        evalScale={evalScale}
+        setEvalScale={setEvalScale}
+        startEvaluation={handleStartEvaluation}
+        stopEvaluation={handleStopEvaluation}
+        hasEvaluationResult={hasEvaluationResult}
+        latestEvaluationId={latestEvaluationId}
+        onViewLatestEvaluation={handleViewLatestEvaluation}
       />
 
       {/* Main Grid: Left Monitor vs Right Telemetry */}
@@ -457,4 +578,3 @@ export default function App() {
     </div>
   );
 }
-

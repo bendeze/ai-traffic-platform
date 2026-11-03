@@ -17,6 +17,8 @@
            apparentDecel="4.5"
            sigma="0.5"
            minGap="2.0"
+           jmIgnoreKeepClearTime="-1"
+           jmDriveAfterYellowTime="-1"
            color="0.2,0.6,1.0"/>
 
     <vType id="bus"
@@ -31,6 +33,8 @@
            apparentDecel="3.5"
            sigma="0.3"
            minGap="2.5"
+           jmIgnoreKeepClearTime="-1"
+           jmDriveAfterYellowTime="-1"
            color="1.0,0.8,0.0"/>
 
     <vType id="truck"
@@ -45,6 +49,8 @@
            apparentDecel="3.8"
            sigma="0.4"
            minGap="2.5"
+           jmIgnoreKeepClearTime="-1"
+           jmDriveAfterYellowTime="-1"
            color="0.8,0.4,0.1"/>
 
     <vType id="motorcycle"
@@ -59,6 +65,8 @@
            apparentDecel="5.0"
            sigma="0.5"
            minGap="1.5"
+           jmIgnoreKeepClearTime="-1"
+           jmDriveAfterYellowTime="-1"
            color="0.1,0.9,0.3"/>
 
     <vType id="bicycle"
@@ -87,6 +95,8 @@
            apparentDecel="5.5"
            sigma="0.2"
            minGap="1.5"
+           jmIgnoreKeepClearTime="-1"
+           jmDriveAfterYellowTime="-1"
            color="1.0,0.1,0.1"/>
 
     <!-- ====================================================================== -->
@@ -113,35 +123,46 @@
     <route id="r_west_to_north"  edges="west_in north_out"/>
 
     <!-- ====================================================================== -->
-    <!-- CONTINUOUS TRAFFIC FLOWS (DEFAULT DEMAND: ~1200 VEHICLES/HOUR TOTAL)   -->
+    <!-- CONTINUOUS ASYMMETRIC TRAFFIC FLOWS (HIGHWAY CORRIDOR VS CROSS STREET)  -->
+    <!-- Sorted chronologically: begin=0.0 flows come first                      -->
     <!-- ====================================================================== -->
-    <!-- North Flows -->
-    <flow id="flow_n_s_car"   type="car"        route="r_north_to_south" begin="0" end="3600" vehsPerHour="200" departLane="best" departSpeed="max"/>
-    <flow id="flow_n_w_car"   type="car"        route="r_north_to_west"  begin="0" end="3600" vehsPerHour="70"  departLane="best" departSpeed="max"/>
-    <flow id="flow_n_e_car"   type="car"        route="r_north_to_east"  begin="0" end="3600" vehsPerHour="60"  departLane="best" departSpeed="max"/>
-    <flow id="flow_n_s_bus"   type="bus"        route="r_north_to_south" begin="0" end="3600" vehsPerHour="25"  departLane="best" departSpeed="max"/>
-    <flow id="flow_n_s_bike"  type="bicycle"    route="r_north_to_south" begin="0" end="3600" vehsPerHour="20"  departLane="best" departSpeed="max"/>
+    <!-- North Flows (Cross-Street: ~220 veh/hr) -->
+    <flow id="flow_n_s_car"   type="car"        route="r_north_to_south" begin="0" end="7200" vehsPerHour="140" departLane="best" departSpeed="max"/>
+    <flow id="flow_n_w_car"   type="car"        route="r_north_to_west"  begin="0" end="7200" vehsPerHour="40"  departLane="best" departSpeed="max"/>
+    <flow id="flow_n_e_car"   type="car"        route="r_north_to_east"  begin="0" end="7200" vehsPerHour="30"  departLane="best" departSpeed="max"/>
+    <flow id="flow_n_s_bus"   type="bus"        route="r_north_to_south" begin="0" end="7200" vehsPerHour="15"  departLane="best" departSpeed="max"/>
+    <flow id="flow_n_s_bike"  type="bicycle"    route="r_north_to_south" begin="0" end="7200" vehsPerHour="15"  departLane="best" departSpeed="max"/>
 
-    <!-- South Flows -->
-    <flow id="flow_s_n_car"   type="car"        route="r_south_to_north" begin="0" end="3600" vehsPerHour="200" departLane="best" departSpeed="max"/>
-    <flow id="flow_s_e_car"   type="car"        route="r_south_to_east"  begin="0" end="3600" vehsPerHour="70"  departLane="best" departSpeed="max"/>
-    <flow id="flow_s_w_car"   type="car"        route="r_south_to_west"  begin="0" end="3600" vehsPerHour="60"  departLane="best" departSpeed="max"/>
-    <flow id="flow_s_truck"   type="truck"      route="r_south_to_north" begin="0" end="3600" vehsPerHour="30"  departLane="best" departSpeed="max"/>
-    <flow id="flow_s_n_bike"  type="bicycle"    route="r_south_to_north" begin="0" end="3600" vehsPerHour="15"  departLane="best" departSpeed="max"/>
+    <!-- South Flows (Cross-Street: ~210 veh/hr) -->
+    <flow id="flow_s_n_car"   type="car"        route="r_south_to_north" begin="0" end="7200" vehsPerHour="130" departLane="best" departSpeed="max"/>
+    <flow id="flow_s_e_car"   type="car"        route="r_south_to_east"  begin="0" end="7200" vehsPerHour="40"  departLane="best" departSpeed="max"/>
+    <flow id="flow_s_w_car"   type="car"        route="r_south_to_west"  begin="0" end="7200" vehsPerHour="30"  departLane="best" departSpeed="max"/>
+    <flow id="flow_s_truck"   type="truck"      route="r_south_to_north" begin="0" end="7200" vehsPerHour="15"  departLane="best" departSpeed="max"/>
+    <flow id="flow_s_n_bike"  type="bicycle"    route="r_south_to_north" begin="0" end="7200" vehsPerHour="10"  departLane="best" departSpeed="max"/>
 
-    <!-- East Flows -->
-    <flow id="flow_e_w_car"   type="car"        route="r_east_to_west"   begin="0" end="3600" vehsPerHour="220" departLane="best" departSpeed="max"/>
-    <flow id="flow_e_n_car"   type="car"        route="r_east_to_north"  begin="0" end="3600" vehsPerHour="75"  departLane="best" departSpeed="max"/>
-    <flow id="flow_e_s_car"   type="car"        route="r_east_to_south"  begin="0" end="3600" vehsPerHour="65"  departLane="best" departSpeed="max"/>
-    <flow id="flow_e_moto"    type="motorcycle" route="r_east_to_west"   begin="0" end="3600" vehsPerHour="40"  departLane="best" departSpeed="max"/>
-    <flow id="flow_e_w_bike"  type="bicycle"    route="r_east_to_west"   begin="0" end="3600" vehsPerHour="20"  departLane="best" departSpeed="max"/>
+    <!-- East Flows (Main Arterial Corridor: ~730 veh/hr) -->
+    <flow id="flow_e_w_car"   type="car"        route="r_east_to_west"   begin="0" end="7200" vehsPerHour="450" departLane="best" departSpeed="max"/>
+    <flow id="flow_e_n_car"   type="car"        route="r_east_to_north"  begin="0" end="7200" vehsPerHour="130" departLane="best" departSpeed="max"/>
+    <flow id="flow_e_s_car"   type="car"        route="r_east_to_south"  begin="0" end="7200" vehsPerHour="90"  departLane="best" departSpeed="max"/>
+    <flow id="flow_e_moto"    type="motorcycle" route="r_east_to_west"   begin="0" end="7200" vehsPerHour="50"  departLane="best" departSpeed="max"/>
+    <flow id="flow_e_w_bike"  type="bicycle"    route="r_east_to_west"   begin="0" end="7200" vehsPerHour="20"  departLane="best" departSpeed="max"/>
 
-    <!-- West Flows -->
-    <flow id="flow_w_e_car"   type="car"        route="r_west_to_east"   begin="0" end="3600" vehsPerHour="220" departLane="best" departSpeed="max"/>
-    <flow id="flow_w_s_car"   type="car"        route="r_west_to_south"  begin="0" end="3600" vehsPerHour="75"  departLane="best" departSpeed="max"/>
-    <flow id="flow_w_n_car"   type="car"        route="r_west_to_north"  begin="0" end="3600" vehsPerHour="65"  departLane="best" departSpeed="max"/>
-    <flow id="flow_w_bus"     type="bus"        route="r_west_to_east"   begin="0" end="3600" vehsPerHour="25"  departLane="best" departSpeed="max"/>
-    <flow id="flow_w_e_bike"  type="bicycle"    route="r_west_to_east"   begin="0" end="3600" vehsPerHour="15"  departLane="best" departSpeed="max"/>
+    <!-- West Flows (Main Arterial Corridor: ~700 veh/hr) -->
+    <flow id="flow_w_e_car"   type="car"        route="r_west_to_east"   begin="0" end="7200" vehsPerHour="430" departLane="best" departSpeed="max"/>
+    <flow id="flow_w_s_car"   type="car"        route="r_west_to_south"  begin="0" end="7200" vehsPerHour="120" departLane="best" departSpeed="max"/>
+    <flow id="flow_w_n_car"   type="car"        route="r_west_to_north"  begin="0" end="7200" vehsPerHour="90"  departLane="best" departSpeed="max"/>
+    <flow id="flow_w_bus"     type="bus"        route="r_west_to_east"   begin="0" end="7200" vehsPerHour="45"  departLane="best" departSpeed="max"/>
+    <flow id="flow_w_e_bike"  type="bicycle"    route="r_west_to_east"   begin="0" end="7200" vehsPerHour="15"  departLane="best" departSpeed="max"/>
+
+    <!-- ====================================================================== -->
+    <!-- INITIAL SEED DEPARTURES (STRICT ASCENDING TIME ORDER)                   -->
+    <!-- ====================================================================== -->
+    <vehicle id="init_east_1"  type="car"   route="r_east_to_west"   depart="0.5" departLane="best" departSpeed="max"/>
+    <vehicle id="init_west_1"  type="car"   route="r_west_to_east"   depart="0.8" departLane="best" departSpeed="max"/>
+    <vehicle id="init_north_1" type="car"   route="r_north_to_south" depart="1.0" departLane="best" departSpeed="max"/>
+    <vehicle id="init_east_2"  type="car"   route="r_east_to_west"   depart="1.5" departLane="best" departSpeed="max"/>
+    <vehicle id="init_west_2"  type="bus"   route="r_west_to_east"   depart="2.0" departLane="best" departSpeed="max"/>
+    <vehicle id="init_south_1" type="car"   route="r_south_to_north" depart="2.2" departLane="best" departSpeed="max"/>
 
     <!-- ====================================================================== -->
     <!-- SCHEDULED EMERGENCY AMBULANCE INJECTIONS FOR PREEMPTION VERIFICATION   -->
@@ -150,7 +171,7 @@
     <vehicle id="amb_east_70"   type="emergency_ambulance" route="r_east_to_west"   depart="70"  departSpeed="max" departLane="best"/>
     <vehicle id="amb_south_130" type="emergency_ambulance" route="r_south_to_north" depart="130" departSpeed="max" departLane="best"/>
     <vehicle id="amb_west_190"  type="emergency_ambulance" route="r_west_to_east"   depart="190" departSpeed="max" departLane="best"/>
-    <flow id="flow_amb_north_periodic" type="emergency_ambulance" route="r_north_to_south" begin="250" end="3600" period="100" departLane="best" departSpeed="max"/>
-    <flow id="flow_amb_east_periodic"  type="emergency_ambulance" route="r_east_to_west"   begin="300" end="3600" period="120" departLane="best" departSpeed="max"/>
+    <flow id="flow_amb_north_periodic" type="emergency_ambulance" route="r_north_to_south" begin="250" end="7200" period="100" departLane="best" departSpeed="max"/>
+    <flow id="flow_amb_east_periodic"  type="emergency_ambulance" route="r_east_to_west"   begin="300" end="7200" period="120" departLane="best" departSpeed="max"/>
 
 </routes>

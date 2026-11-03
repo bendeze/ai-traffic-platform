@@ -17,12 +17,14 @@ class TestPedestrianCrossingStop(unittest.TestCase):
         """Verifies that trigger_pedestrian_red accurately tracks active pedestrian approaches."""
         now = time.time()
         self.safety.trigger_pedestrian_red("north", duration=10.0)
-        self.assertTrue(self.safety.is_pedestrian_red_active(now))
+        self.assertEqual(self.safety.signal_state.value, "yellow")
+        self.safety.update(now + 2.1)
+        self.assertTrue(self.safety.is_pedestrian_red_active(now + 2.1))
         self.assertEqual(self.safety.pedestrian_approach, "north")
         self.assertIn("north", self.safety.active_pedestrian_approaches)
 
         # Fast forward past 10 seconds
-        future = now + 10.5
+        future = now + 12.5
         self.safety.update(future)
         self.assertFalse(self.safety.is_pedestrian_red_active(future))
         self.assertIsNone(self.safety.pedestrian_approach)
@@ -62,6 +64,7 @@ class TestPedestrianCrossingStop(unittest.TestCase):
 
             # Trigger pedestrian request on north
             self.safety.trigger_pedestrian_red("north", duration=10.0)
+            self.safety.update(time.time() + 2.1)
 
             # Run crossing stop enforcement
             self.manager._apply_pedestrian_crossing_stops()
@@ -83,7 +86,7 @@ class TestPedestrianCrossingStop(unittest.TestCase):
             self.assertNotIn("amb1", calls)
 
             # Now simulate expiration of pedestrian phase
-            future = time.time() + 11.0
+            future = time.time() + 14.0
             self.safety.update(future)
             self.assertFalse(self.safety.is_pedestrian_red_active(future))
 

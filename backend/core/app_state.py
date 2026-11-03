@@ -54,6 +54,16 @@ class AppState:
         self.last_sent_serial_states: dict = {}
         self.last_serial_sync_time: float = 0.0
 
+    def refresh_settings(self):
+        """Hot-reloads settings directly from .env and updates all controller references."""
+        self.settings = load_settings()
+        self.engine.settings = self.settings
+        self.safety.settings = self.settings
+        self.safety._active_yellow_dur = float(self.settings.timing.yellow_dur)
+        self.estimator.settings = self.settings
+        self.vision.settings = self.settings
+        self.serial_mgr.settings = self.settings
+
     def build_telemetry_payload(self) -> dict:
         """Constructs canonical 300ms real-time state payload for UI and API."""
         now = time.time()

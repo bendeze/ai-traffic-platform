@@ -35,6 +35,7 @@ async def set_active_environment(env: str, state: AppState = Depends(get_app_sta
 @router.post("/sumo/start")
 async def sumo_start(gui: bool = False, speed: float = 1.0, state: AppState = Depends(get_app_state)):
     state.active_environment = "sumo"
+    state.refresh_settings()
     ok = state.sumo_mgr.start_simulation(gui=gui, speed_factor=speed)
     if not ok:
         raise HTTPException(500, "Failed to start SUMO simulation. Check diagnostics.")

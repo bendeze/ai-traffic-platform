@@ -89,3 +89,108 @@ export interface SerialPortsResponse {
   ports: SerialPortInfo[];
 }
 
+// ==========================================
+// SUMO Simulation Evaluation Types
+// ==========================================
+
+export type EvaluationPhase =
+  | 'idle'
+  | 'preparing'
+  | 'running_manual'
+  | 'processing_manual'
+  | 'running_adaptive'
+  | 'processing_adaptive'
+  | 'completed'
+  | 'failed';
+
+export interface EvaluationStatusResponse {
+  isRunning: boolean;
+  evaluationId: string | null;
+  phase: EvaluationPhase;
+  progress: number;
+  message: string;
+  error?: string | null;
+  hasResult: boolean;
+  latestEvaluationId?: string | null;
+}
+
+export interface EvaluationMetric {
+  name: string;
+  label: string;
+  unit: string;
+  manual: number;
+  adaptive: number;
+  diff: number;
+  improvement: number;
+  better: 'adaptive' | 'manual' | 'neutral';
+  lowerIsBetter: boolean;
+}
+
+export interface EvaluationQueueTimelinePoint {
+  time: number;
+  manualQueue: number;
+  adaptiveQueue: number;
+}
+
+export interface EvaluationThroughputPoint {
+  time: number;
+  manualThroughput: number;
+  adaptiveThroughput: number;
+}
+
+export interface EvaluationWaitingBucket {
+  range: string;
+  manualCount: number;
+  adaptiveCount: number;
+}
+
+export interface EvaluationBarItem {
+  mode: string;
+  value: number;
+  fill: string;
+}
+
+export interface EvaluationNarrative {
+  verdict: string;
+  summary: string;
+  keyObservations: string[];
+  conclusion: string;
+}
+
+export interface EvaluationResult {
+  metadata: {
+    evaluationId: string;
+    timestamp: string;
+    networkName: string;
+    simulationDuration: number;
+    randomSeed: number;
+    trafficScale?: string;
+    scaleFactor?: number;
+    scaleLabel?: string;
+    status: string;
+  };
+  metrics: EvaluationMetric[];
+  charts: {
+    barCharts: {
+      waitingTime: EvaluationBarItem[];
+      travelTime: EvaluationBarItem[];
+      speed: EvaluationBarItem[];
+    };
+    queueOverTime: EvaluationQueueTimelinePoint[];
+    throughputOverTime: EvaluationThroughputPoint[];
+    waitingDistribution: EvaluationWaitingBucket[];
+  };
+  narrative: EvaluationNarrative;
+}
+
+export interface EvaluationHistoryItem {
+  evaluationId: string;
+  timestamp: string;
+  networkName: string;
+  simulationDuration: number;
+  trafficScale?: string;
+  scaleLabel?: string;
+  status: string;
+  verdict?: string;
+  waitingImprovement?: number;
+}

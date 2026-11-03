@@ -66,3 +66,8 @@ Thumbs.db
 *.bin
 *.hex
 
+
+# Evaluation raw simulation traces (ignore heavy multi-megabyte XML files, keep results.json)
+evaluations/**/manual/
+evaluations/**/adaptive/
+evaluations/**/*.xml

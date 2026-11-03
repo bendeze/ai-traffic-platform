@@ -1,5 +1,6 @@
 import React from 'react';
 import { TelemetryPayload, ApproachName } from '../types';
+import { Siren, UserCheck, UserPlus } from 'lucide-react';
 
 interface ApproachTelemetryGridProps {
   data: TelemetryPayload | null;
@@ -40,7 +41,8 @@ export default function ApproachTelemetryGrid({
             >
               <div className="flex justify-between items-center">
                 <span className="font-mono text-xs font-bold tracking-wide text-zinc-900 dark:text-white">
-                  {app.toUpperCase()} {hasAmb && '🚑'}
+                  <span>{app.toUpperCase()}</span>
+                  {hasAmb && <Siren className="w-3.5 h-3.5 text-rose-500 animate-pulse inline" />}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <span className={`font-mono text-xs font-extrabold ${
@@ -85,7 +87,15 @@ export default function ApproachTelemetryGrid({
                     : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-white'
                 }`}
               >
-                {isPedActive ? '🚶 LOCKED ON RED (10s CROSSING)' : '+ PEDESTRIAN REQUEST'}
+                {isPedActive ? (
+                  <span className="flex items-center justify-center gap-1">
+                    <UserCheck className="w-3 h-3" /> LOCKED ON RED (10s CROSSING)
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-1">
+                    <UserPlus className="w-3 h-3" /> PEDESTRIAN REQUEST
+                  </span>
+                )}
               </button>
             </div>
           );

@@ -5,22 +5,22 @@ from typing import Optional, Callable, Set, Dict, List
 class SignalState(Enum):
     GREEN     = "green"
     YELLOW    = "yellow"
-    CLEARANCE = "clearance"   # all-red interval between phases
+    CLEARANCE = "clearance"   # Kept for schema compatibility, but 2s all-red removed
     RED       = "red"
 
 class SafetyManager:
     """
     Hardware-interlock state machine.
 
-    Transition sequence (MANDATORY — never skip):
-        GREEN  →  YELLOW  →  CLEARANCE (all-red)  →  GREEN (new phase)
+    Transition sequence (Direct, high-efficiency, no all-red clearance interval):
+        GREEN  →  YELLOW (3s)  →  GREEN (new phase)
 
     Rules:
     - Conflicting green phases are NEVER active simultaneously.
     - STANDARD TRANSITIONS: All 4 approaches turn YELLOW simultaneously
       to announce the intersection state change to all traffic.
-    - PEDESTRIAN TRANSITIONS: The active moving phase gets 10s yellow to stop safely,
-      while non-moving approaches stay red.
+    - PEDESTRIAN TRANSITIONS: When pedestrian request is triggered on an active green road,
+      the moving phase turns YELLOW first (warning cars to stop), then locks RED for 10s.
     - Python proposes; SafetyManager validates and executes.
     """
 
@@ -37,8 +37,9 @@ class SafetyManager:
         self._next_green_dur          = float(settings.timing.min_green)
         self._active_yellow_dur       = float(settings.timing.yellow_dur)
         self._is_pedestrian_transition = False
+        self._pending_pedestrian_approach: Optional[str] = None
 
-        # Pedestrian 10s RED hold: forces the requested road's phase to RED for 10s immediately
+        # Pedestrian 10s RED hold: forces the requested road's phase to RED for 10s
         self.pedestrian_red_phase: Optional[str] = None
         self.pedestrian_red_until: float = 0.0
         self.pedestrian_approach: Optional[str] = None
@@ -51,18 +52,42 @@ class SafetyManager:
 
     def trigger_pedestrian_red(self, approach: str, duration: float = 10.0):
         """
-        Immediately forces all roads on this approach's phase to RED for 10 seconds.
-        E.g. if 'north' or 'south': Phase A immediately turns RED for 10 seconds.
-        Phase B (east & west) turns GREEN, giving pedestrians safe crosswalk passage.
+        When pedestrian requests a crossing on `approach`:
+        - If the approach's phase is currently GREEN:
+          Must put it on YELLOW first (3s) so approaching cars decelerate safely!
+          After yellow expires, forces RED for 10s and switches conflicting phase to GREEN.
+        - If the approach's phase is already RED:
+          Traffic is already halted, so immediately activate the 10s RED hold.
         """
         now = time.time()
-        target_red_phase = "A" if approach in self.settings.phases.get("A", []) else "B"
+        app = approach.lower()
+        target_red_phase = "A" if app in self.settings.phases.get("A", []) else "B"
+
+        if self.current_phase == target_red_phase and self.signal_state == SignalState.GREEN:
+            # Active green moving traffic -> Give YELLOW first!
+            yellow_dur = float(getattr(self.settings.timing, "pedestrian_yellow_dur", 3.0))
+            self.signal_state = SignalState.YELLOW
+            self._transition_start = now
+            self._in_transition = True
+            self._active_yellow_dur = yellow_dur
+            self._is_pedestrian_transition = True
+            self._pending_pedestrian_approach = app
+            self._pending_phase = "B" if target_red_phase == "A" else "A"
+        else:
+            # Already RED or in transition -> directly lock on 10s RED
+            self._activate_pedestrian_red(app, duration, now)
+
+    def _activate_pedestrian_red(self, approach: str, duration: float = 10.0, now: Optional[float] = None):
+        if now is None:
+            now = time.time()
+        app = approach.lower()
+        target_red_phase = "A" if app in self.settings.phases.get("A", []) else "B"
         green_phase = "B" if target_red_phase == "A" else "A"
 
         self.pedestrian_red_phase = target_red_phase
         self.pedestrian_red_until = now + duration
-        self.pedestrian_approach = approach.lower()
-        self.active_pedestrian_approaches.add(approach.lower())
+        self.pedestrian_approach = app
+        self.active_pedestrian_approaches.add(app)
 
         self.current_phase = green_phase
         self.signal_state = SignalState.GREEN
@@ -70,10 +95,14 @@ class SafetyManager:
         self._phase_start = now
         self._in_transition = False
         self._pending_phase = None
+        self._pending_pedestrian_approach = None
         self._is_pedestrian_transition = True
 
         if self._on_phase_started:
-            self._on_phase_started(green_phase)
+            try:
+                self._on_phase_started(green_phase, now=now)
+            except TypeError:
+                self._on_phase_started(green_phase)
 
     # ─────────────────────────────────────────────────────────────────────────
     def update(self, now: Optional[float] = None):
@@ -98,21 +127,38 @@ class SafetyManager:
             elapsed = now - (self._transition_start or now)
             if self.signal_state == SignalState.YELLOW:
                 if elapsed >= self._active_yellow_dur:
-                    # YELLOW done → enter all-red CLEARANCE
-                    self.signal_state      = SignalState.CLEARANCE
-                    self._transition_start = now
+                    # YELLOW done → directly activate next phase / pedestrian red (no 2s all-red clearance)
+                    if self._pending_pedestrian_approach:
+                        app = self._pending_pedestrian_approach
+                        self._pending_pedestrian_approach = None
+                        self._activate_pedestrian_red(app, duration=10.0, now=now)
+                    else:
+                        self.current_phase   = self._pending_phase
+                        self.signal_state    = SignalState.GREEN
+                        self._phase_start    = now
+                        self.remaining_green = float(self._next_green_dur)
+                        self._in_transition  = False
+                        self._pending_phase  = None
+                        self._active_yellow_dur = float(self.settings.timing.yellow_dur)
+                        self._is_pedestrian_transition = False
+                        if self._on_phase_started:
+                            try:
+                                self._on_phase_started(self.current_phase, now=now)
+                            except TypeError:
+                                self._on_phase_started(self.current_phase)
             elif self.signal_state == SignalState.CLEARANCE:
-                if elapsed >= self.settings.timing.clearance:
-                    # CLEARANCE done → activate new phase
-                    self.current_phase   = self._pending_phase
-                    self.signal_state    = SignalState.GREEN
-                    self._phase_start    = now
-                    self.remaining_green = float(self._next_green_dur)
-                    self._in_transition  = False
-                    self._pending_phase  = None
-                    self._active_yellow_dur = float(self.settings.timing.yellow_dur)
-                    self._is_pedestrian_transition = False
-                    if self._on_phase_started:
+                # Immediate fallback if clearance was set
+                self.current_phase   = self._pending_phase
+                self.signal_state    = SignalState.GREEN
+                self._phase_start    = now
+                self.remaining_green = float(self._next_green_dur)
+                self._in_transition  = False
+                self._pending_phase  = None
+                self._is_pedestrian_transition = False
+                if self._on_phase_started:
+                    try:
+                        self._on_phase_started(self.current_phase, now=now)
+                    except TypeError:
                         self._on_phase_started(self.current_phase)
         else:
             elapsed = now - self._phase_start
@@ -120,9 +166,10 @@ class SafetyManager:
             self._phase_start    = now
 
     # ─────────────────────────────────────────────────────────────────────────
-    def apply(self, proposal: dict):
+    def apply(self, proposal: dict, now: Optional[float] = None):
         """Called periodically by decision_loop."""
-        now = time.time()
+        if now is None:
+            now = time.time()
         self.update(now)
 
         # Active pedestrian 10s RED hold: freeze any transition until 10s expires
@@ -141,14 +188,14 @@ class SafetyManager:
             reason = str(proposal.get("reason", "")).lower()
             custom_yellow = proposal.get("yellow_dur")
 
-            if "pedestrian" in reason or (custom_yellow and custom_yellow >= 9):
+            if "pedestrian" in reason:
                 self._is_pedestrian_transition = True
-                self._active_yellow_dur = float(custom_yellow or 10.0)
+                self._active_yellow_dur = float(custom_yellow if custom_yellow is not None else getattr(self.settings.timing, "pedestrian_yellow_dur", 2.0))
             else:
                 self._is_pedestrian_transition = False
-                self._active_yellow_dur = float(custom_yellow or self.settings.timing.yellow_dur)
+                self._active_yellow_dur = float(custom_yellow if custom_yellow is not None else self.settings.timing.yellow_dur)
 
-            # Start mandatory sequence: YELLOW → CLEARANCE → GREEN
+            # Start transition sequence: YELLOW (3s) → GREEN (new phase)
             self.signal_state       = SignalState.YELLOW
             self._pending_phase     = requested
             self._transition_start  = now
@@ -163,7 +210,7 @@ class SafetyManager:
             self.remaining_green = float(self.settings.timing.min_green)
 
     # ─────────────────────────────────────────────────────────────────────────
-    def request_phase(self, phase: str, duration: Optional[int] = None, manual: bool = False, yellow_dur: Optional[float] = None):
+    def request_phase(self, phase: str, duration: Optional[int] = None, manual: bool = False, yellow_dur: Optional[float] = None, now: Optional[float] = None):
         """Direct phase request with custom green duration."""
         if phase in self.settings.phases and not self._in_transition:
             dur = duration if duration is not None else self.settings.timing.min_green
@@ -173,7 +220,7 @@ class SafetyManager:
             prop = {"phase": phase, "duration": dur, "manual": manual}
             if yellow_dur is not None:
                 prop["yellow_dur"] = yellow_dur
-            self.apply(prop)
+            self.apply(prop, now=now)
 
     # ─────────────────────────────────────────────────────────────────────────
     def get_approach_states(self) -> dict:
@@ -195,12 +242,12 @@ class SafetyManager:
                 if self._in_transition:
                     if self.signal_state == SignalState.YELLOW:
                         if self._is_pedestrian_transition:
+                            # Moving approaches decelerate with yellow; cross street stays red
                             result[app] = "yellow" if app in green_now else "red"
                         else:
                             # Standard transition: ALL 4 approaches show YELLOW simultaneously!
                             result[app] = "yellow"
                     else:
-                        # ALL-RED CLEARANCE
                         result[app] = "red"
                 else:
                     result[app] = "green" if app in green_now else "red"
@@ -212,7 +259,6 @@ class SafetyManager:
         Returns live countdown in seconds for each approach:
         - Active green: countdown until yellow
         - Active yellow: countdown of yellow
-        - Clearance: countdown of clearance
         - Waiting red: countdown until this approach turns green
         """
         now = time.time()
@@ -231,24 +277,14 @@ class SafetyManager:
 
         if self._in_transition:
             elapsed = now - (self._transition_start or now)
-            if self.signal_state == SignalState.YELLOW:
-                rem_yellow = max(0.0, self._active_yellow_dur - elapsed)
-                rem_clear = float(self.settings.timing.clearance)
-                for phase_apps in self.settings.phases.values():
-                    for app in phase_apps:
-                        if app in green_now or not self._is_pedestrian_transition:
-                            timers[app] = int(round(rem_yellow))
-                        else:
-                            timers[app] = int(round(rem_yellow + rem_clear))
-            else: # CLEARANCE
-                rem_clear = max(0.0, float(self.settings.timing.clearance) - elapsed)
-                for phase_apps in self.settings.phases.values():
-                    for app in phase_apps:
-                        timers[app] = int(round(rem_clear))
+            rem_yellow = max(0.0, self._active_yellow_dur - elapsed)
+            for phase_apps in self.settings.phases.values():
+                for app in phase_apps:
+                    timers[app] = int(round(rem_yellow))
         else:
             # Normal green state
             rem_green = max(0.0, self.remaining_green)
-            trans_overhead = float(self._active_yellow_dur) + float(self.settings.timing.clearance)
+            trans_overhead = float(self._active_yellow_dur)
             for phase_apps in self.settings.phases.values():
                 for app in phase_apps:
                     if app in green_now:

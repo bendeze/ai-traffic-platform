@@ -47,14 +47,14 @@ class TestBaselineFSMAndSafety(unittest.TestCase):
         self.assertEqual(states["west"], "red")
 
     def test_02_safety_interlock_sequence(self):
-        # Mandatory sequence: GREEN -> YELLOW (3s) -> CLEARANCE All-Red (2s) -> GREEN
+        # Direct transition sequence: GREEN -> YELLOW (3s) -> GREEN (new phase, no 2s all-red clearance)
         now = time.time()
         self.safety._phase_start = now - 15.0  # Min green elapsed
         self.safety.current_phase = "A"
         self.safety.signal_state = SignalState.GREEN
 
         # Propose switch to Phase B
-        proposal = {"phase": "B", "duration": 25, "yellow_dur": 3.0}
+        proposal = {"phase": "B", "duration": 25, "yellow_dur": 2.0}
         self.safety.apply(proposal)
 
         # 1. State must immediately become YELLOW
@@ -66,16 +66,7 @@ class TestBaselineFSMAndSafety(unittest.TestCase):
         self.assertEqual(yellow_states["east"], "yellow")
         self.assertEqual(yellow_states["west"], "yellow")
 
-        # 2. Advance 3.1s -> Must enter CLEARANCE (All-Red)
-        self.safety.update(now=self.safety._transition_start + 3.1)
-        self.assertEqual(self.safety.signal_state, SignalState.CLEARANCE)
-        clearance_states = self.safety.get_approach_states()
-        self.assertEqual(clearance_states["north"], "red")
-        self.assertEqual(clearance_states["south"], "red")
-        self.assertEqual(clearance_states["east"], "red")
-        self.assertEqual(clearance_states["west"], "red")
-
-        # 3. Advance additional 2.1s -> Must activate Phase B GREEN
+        # 2. Advance 3.1s -> Yellow complete -> Must directly activate Phase B GREEN (no 2s all-red clearance)
         self.safety.update(now=self.safety._transition_start + 2.1)
         self.assertEqual(self.safety.signal_state, SignalState.GREEN)
         self.assertEqual(self.safety.current_phase, "B")
@@ -96,10 +87,14 @@ class TestBaselineFSMAndSafety(unittest.TestCase):
         self.assertIn("emergency_ambulance_preemption", decision["reason"])
 
     def test_04_pedestrian_10s_red_override(self):
-        # A pedestrian request on 'north' must immediately lock North & South (Phase A) on RED
+        # A pedestrian request on 'north' while Phase A is GREEN must give YELLOW first, then lock RED for 10s
         now = time.time()
         self.safety.trigger_pedestrian_red("north", duration=10.0)
-        self.assertTrue(self.safety.is_pedestrian_red_active(now))
+        # 1. First state is YELLOW to let moving cars decelerate
+        self.assertEqual(self.safety.signal_state, SignalState.YELLOW)
+        # 2. Advance past yellow (3.1s) -> locks on RED for 10s
+        self.safety.update(now=now + 2.1)
+        self.assertTrue(self.safety.is_pedestrian_red_active(now + 2.1))
 
         states = self.safety.get_approach_states()
         self.assertEqual(states["north"], "red")
@@ -119,6 +114,41 @@ class TestBaselineFSMAndSafety(unittest.TestCase):
         status = sm.status()
         self.assertIn("connected", status)
         self.assertIn("baud_rate", status)
+
+    def test_07_zero_car_continuation_keeps_green_on_busy_road(self):
+        # If Phase B has cars (east=4, west=4) and Phase A has 0 cars (north=0, south=0),
+        # Phase B must continue holding green and NEVER switch to empty Phase A!
+        self.engine._last_phase = "B"
+        t0 = time.time()
+        self.engine._phase_start = t0 - 20.0  # 20s elapsed
+        state = self._make_state(north=0, south=0, east=4, west=4)
+        decision = self.engine.decide(state, ped_requests={}, now=t0)
+        self.assertEqual(decision["phase"], "B")
+        self.assertIn("priority_continuation", decision["reason"])
+
+    def test_08_queue_priority_override_on_large_queue(self):
+        # If Phase A has 1 car and Phase B has 10 cars, Phase B has massive queue.
+        # After 3s of Phase A, system must switch to Phase B to clear the large queue.
+        self.engine._last_phase = "A"
+        t0 = time.time()
+        self.engine._phase_start = t0 - 3.5  # 3.5s elapsed
+        state = self._make_state(north=1, south=0, east=5, west=5)
+        decision = self.engine.decide(state, ped_requests={}, now=t0)
+        self.assertEqual(decision["phase"], "B")
+        self.assertTrue(
+            "queue_priority" in decision["reason"] or "critical_queue_relief" in decision["reason"]
+        )
+
+    def test_09_moving_traffic_prevents_false_gap_out(self):
+        # When Phase B is green, if cars are actively approaching within 50m (approaching_count > 0),
+        # even if stopped queue is 0, it must NOT gap-out!
+        self.engine._last_phase = "B"
+        t0 = time.time()
+        self.engine._phase_start = t0 - 5.0
+        state = self._make_state(north=1, south=0, east=0, west=0)
+        state["east"].approaching_count = 3  # 3 cars actively approaching at green
+        decision = self.engine.decide(state, ped_requests={}, now=t0)
+        self.assertEqual(decision["phase"], "B")
 
 if __name__ == '__main__':
     unittest.main()
