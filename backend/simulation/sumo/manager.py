@@ -211,6 +211,7 @@ class SUMOManager:
                             existing = self.estimator._states[app_name]
                             existing.vehicle_count = st.vehicle_count
                             existing.queue_estimate = st.queue_estimate
+                            existing.approaching_count = getattr(st, "approaching_count", 0)
                             existing.waiting_time = st.waiting_time
                             existing.breakdown = st.breakdown
                             existing.has_ambulance = st.has_ambulance

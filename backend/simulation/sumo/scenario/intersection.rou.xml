@@ -17,8 +17,6 @@
            apparentDecel="4.5"
            sigma="0.5"
            minGap="2.0"
-           jmIgnoreKeepClearTime="-1"
-           jmDriveAfterYellowTime="-1"
            color="0.2,0.6,1.0"/>
 
     <vType id="bus"
@@ -33,8 +31,6 @@
            apparentDecel="3.5"
            sigma="0.3"
            minGap="2.5"
-           jmIgnoreKeepClearTime="-1"
-           jmDriveAfterYellowTime="-1"
            color="1.0,0.8,0.0"/>
 
     <vType id="truck"
@@ -49,8 +45,6 @@
            apparentDecel="3.8"
            sigma="0.4"
            minGap="2.5"
-           jmIgnoreKeepClearTime="-1"
-           jmDriveAfterYellowTime="-1"
            color="0.8,0.4,0.1"/>
 
     <vType id="motorcycle"
@@ -65,8 +59,6 @@
            apparentDecel="5.0"
            sigma="0.5"
            minGap="1.5"
-           jmIgnoreKeepClearTime="-1"
-           jmDriveAfterYellowTime="-1"
            color="0.1,0.9,0.3"/>
 
     <vType id="bicycle"
@@ -95,8 +87,6 @@
            apparentDecel="5.5"
            sigma="0.2"
            minGap="1.5"
-           jmIgnoreKeepClearTime="-1"
-           jmDriveAfterYellowTime="-1"
            color="1.0,0.1,0.1"/>
 
     <!-- ====================================================================== -->

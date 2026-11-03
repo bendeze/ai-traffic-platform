@@ -121,8 +121,7 @@ class SUMOTrafficAdapter:
             self.last_applied_state = state_str
             return False
 
-        if state_str == self.last_applied_state and (self._total_updates % 50 != 0):
-            return True
+
         try:
             traci.switch(self.conn._traci_label)
             # Only send update if state changed or periodically to maintain external control

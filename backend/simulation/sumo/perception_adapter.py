@@ -81,7 +81,7 @@ class SUMOPerceptionAdapter:
                         vtype, vclass = self._veh_types[vid]
                     else:
                         vtype = str(traci.vehicle.getTypeID(vid)).lower()
-    
+                        vclass = str(traci.vehicle.getVehicleClass(vid)).lower()
                         self._veh_types[vid] = (vtype, vclass)
 
                     wtime = float(traci.vehicle.getWaitingTime(vid))
@@ -98,7 +98,7 @@ class SUMOPerceptionAdapter:
 
                     if speed < 1.5 and dist_to_stop <= 80.0:
                         queue_count += 1
-                    elif speed >= 1.5 and dist_to_stop <= 50.0:
+                    elif speed >= 1.5 and dist_to_stop <= 25.0:
                         approaching_count += 1
                     if wtime > max_waiting:
                         max_waiting = wtime
