@@ -114,7 +114,7 @@ if ! command -v npm >/dev/null 2>&1; then
     exit 1
 fi
 
-(cd frontend && npm install)
+(cd frontend && npm install --legacy-peer-deps)
 echo "[OK] Frontend dependencies ready."
 echo ""
 

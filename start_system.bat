@@ -99,7 +99,7 @@ if errorlevel 1 (
 )
 
 cd frontend
-call npm install
+call npm install --legacy-peer-deps
 if errorlevel 1 (
     echo [ERROR] npm install failed.
     cd ..

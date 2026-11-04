@@ -77,7 +77,7 @@ Write-Host ""
 # 3. Check and install frontend dependencies
 Write-Host "[3/4] Checking and installing frontend npm dependencies..." -ForegroundColor Yellow
 Set-Location -Path (Join-Path $PSScriptRoot "frontend")
-npm install
+npm install --legacy-peer-deps
 Set-Location -Path $PSScriptRoot
 Write-Host "[OK] Frontend dependencies ready." -ForegroundColor Green
 Write-Host ""
